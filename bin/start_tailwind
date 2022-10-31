@@ -1,0 +1,2 @@
+TAILWIND_MODE=watch npx tailwindcss -i ../templates/css/_global.css -o ../templates/css/global.css --watch 
+
