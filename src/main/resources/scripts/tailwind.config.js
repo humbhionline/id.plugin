@@ -1,5 +1,5 @@
 module.exports = {
-  content: ["../templates/**/html/**/*.{html,js,md}", "../templates/**/markdown/**/*.{html,js,md}", "../scripts/application.js"],
+  content: ["../templates/**/html/**/*.{html,js,md}", "../templates/**/markdown/**/*.{html,js,md}", "../scripts/application.js" , "../templates/css/_global.css"],
   safelist: [ "offset-8", "offset-5", "offset-4" , "offset-3", "offset-2", "text-right", 
     "lg:offset-5", "lg:offset-4" ,"lg:offset-3","lg:offset-2",
     "sm:offset-5", "sm:offset-4","sm:offset-3","sm:offset-2",

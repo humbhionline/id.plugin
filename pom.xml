@@ -72,11 +72,7 @@
             <artifactId>swf-plugin-audit</artifactId>
             <version>[2.10,)</version>
         </dependency>
-        <dependency>
-            <groupId>com.github.venkatramanm.swf-all</groupId>
-            <artifactId>swf-plugin-payments</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
+
         <dependency>
           <groupId>com.h2database</groupId>
           <artifactId>h2</artifactId>

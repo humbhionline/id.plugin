@@ -5,10 +5,15 @@ import com.venky.core.util.ObjectUtil;
 import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
+import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
+import com.venky.swf.db.model.io.ModelIOFactory;
 import com.venky.swf.exceptions.AccessDeniedException;
+import com.venky.swf.integration.FormatHelper;
+import com.venky.swf.integration.FormatHelper.KeyCase;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.path.Path;
+import com.venky.swf.views.BytesView;
 import com.venky.swf.views.View;
 import in.succinct.id.db.model.Grant;
 import org.json.simple.JSONObject;
@@ -17,6 +22,8 @@ import org.owasp.encoder.Encode;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,7 +44,7 @@ public class OauthController extends Controller {
     private void prepareSession(){
         HttpSession session = getPath().getSession();
         if (session != null) {
-            session.setAttribute("autoInvalidate", true);
+            session.setAttribute("autoInvalidate", false);
         }
     }
     @RequireLogin(false)
@@ -46,11 +53,18 @@ public class OauthController extends Controller {
         String redirect_uri = (String)fields.get("redirect_uri");
 
         StringBuilder queryParams = new StringBuilder();
-        queryParams.append(redirect_uri).append("?");
+        if (ObjectUtil.isVoid(redirect_uri)){
+            throw new AccessDeniedException("Don't know where to redirect");
+        }
+        queryParams.append(redirect_uri);
+        if (redirect_uri.contains("?")){
+            queryParams.append("&");
+        }else{
+            queryParams.append("?");
+        }
 
         fields.forEach((k,v)->{
-            if (k.equals("redirect_uri")){
-                // No need to resend redirect_uri
+            if ( k.equals("_LOGIN") || k.equals("_REGISTER") || k.equals("error") || k.equals("redirect_uri")){
                 return;
             }
             if (queryParams.length() >0 ){
@@ -80,7 +94,7 @@ public class OauthController extends Controller {
             queryParams.append("/oauth/authorization_success?");
             JSONObject object = new JSONObject();
             getPath().getFormFields().forEach((k,v)->{
-                if ("name".equals(k) || k.startsWith("password") || (k.equals("_LOGIN") || k.equals("_REGISTER"))){
+                if ("name".equals(k) || k.startsWith("password") || k.equals("_LOGIN") || k.equals("_REGISTER") || k.equals("error")){
                     return;
                 }
                 object.put(k,Encode.forUriComponent(v.toString()));
@@ -107,6 +121,7 @@ public class OauthController extends Controller {
 
     @RequireLogin(false)
     public View token(){
+        getPath().getHeaders().put("Accept","application/json");
         if ( HttpMethod.valueOf(getPath().getRequest().getMethod().toUpperCase()) != HttpMethod.POST){
             throw new AccessDeniedException("Invalid method");
         }
@@ -120,8 +135,11 @@ public class OauthController extends Controller {
         }
 
         IntegrationAdaptor<Grant,JSONObject> integrationAdaptor = IntegrationAdaptor.instance(Grant.class,JSONObject.class);
-        View view = integrationAdaptor.createResponse(getPath(),grant);
-        view.getPath().getResponse().addHeader("Cache-Control","no-store");
+        JSONObject out = new JSONObject();
+        ModelIOFactory.getWriter(Grant.class, JSONObject.class).write(grant,out,grant.getReflector().getVisibleFields(new ArrayList<>()));
+        FormatHelper.instance(out).change_key_case(KeyCase.SNAKE);
+
+        View view = new BytesView(getPath(),out.toString().getBytes(StandardCharsets.UTF_8), MimeType.APPLICATION_JSON,"Cache-Control","no-store");
         return view;
     }
 
@@ -132,7 +150,7 @@ public class OauthController extends Controller {
         if (grant == null){
             throw new AccessDeniedException("Bad Refresh Token");
         }
-        grant.setAccessToken(UUID.randomUUID().toString());
+        grant.setAccessToken(Crypt.getInstance().toBase64(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)));
         grant.setAccessTokenExpiry(System.currentTimeMillis()+TOKEN_LIFE);
         grant.save();
         return grant;
@@ -156,12 +174,18 @@ public class OauthController extends Controller {
             }
         }
         Grant newGrant = Database.getTable(Grant.class).newRecord();
-        newGrant.setAccessToken(UUID.randomUUID().toString());
-        newGrant.setAccessTokenExpiry(System.currentTimeMillis() + TOKEN_LIFE);
         newGrant.setApplicationId(getPath().getApplication().getId());
         newGrant.setUserId((Long)grant.get("id"));
-        newGrant.setRefreshToken(UUID.randomUUID().toString());
-        newGrant.save();
+        newGrant = Database.getTable(Grant.class).getRefreshed(newGrant);
+        if (newGrant.getRawRecord().isNewRecord() || newGrant.getAccessTokenExpiry() < System.currentTimeMillis()){
+            newGrant.setAccessToken(Crypt.getInstance().toBase64(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)));
+            newGrant.setAccessTokenExpiry(System.currentTimeMillis() + TOKEN_LIFE);
+            if (newGrant.getRawRecord().isNewRecord()) {
+                newGrant.setRefreshToken(Crypt.getInstance().toBase64(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)));
+            }
+            newGrant.save();
+        }
+
         return newGrant;
     }
 

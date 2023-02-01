@@ -27,9 +27,9 @@ public class AppInstaller implements Installer {
             for (String allowedRole : DefaultUserRoles.ALLOWED_ROLES) {
                 Role role = Database.getTable(Role.class).newRecord();
                 role.setName(allowedRole);
-                if (!ObjectUtil.equals(allowedRole,DefaultUserRoles.ALLOWED_ROLES[0])){
+                /*if (!ObjectUtil.equals(allowedRole,DefaultUserRoles.ALLOWED_ROLES[0])){
                     role.setStaff(true);
-                }
+                }*/
                 role.save();
             }
         }

@@ -1,9 +1,11 @@
 package in.succinct.id.extensions;
 
 import com.venky.core.util.ObjectUtil;
+import com.venky.swf.db.Database;
 import com.venky.swf.plugins.collab.db.model.config.City;
 import com.venky.swf.plugins.collab.db.model.config.Country;
 import com.venky.swf.plugins.collab.db.model.config.PinCode;
+import com.venky.swf.plugins.collab.db.model.config.PostalOffice;
 import com.venky.swf.plugins.collab.db.model.config.State;
 import in.succinct.id.db.model.DocumentType;
 import in.succinct.id.db.model.User;

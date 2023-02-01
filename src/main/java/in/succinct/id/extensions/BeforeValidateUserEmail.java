@@ -4,6 +4,7 @@ import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.extensions.BeforeModelValidateExtension;
 
+import com.venky.swf.exceptions.AccessDeniedException;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.collab.db.model.user.Email;
@@ -45,6 +46,21 @@ public class BeforeValidateUserEmail extends BeforeModelValidateExtension<UserEm
             }
         }
 
+        if (model.getRawRecord().isFieldDirty("COMPANY_GST_IN")){
+            model.setGstInVerified(false);
+        }
+        if (model.getRawRecord().isFieldDirty("COMPANY_REGISTRATION_NUMBER")){
+            model.setCompanyRegistrationNumberVerified(false);
+        }
+
+        if (model.isGstInVerified() && model.getRawRecord().isFieldDirty("GST_IN_VERIFIED") &&
+                !model.getReflector().getJdbcTypeHelper().getTypeRef(boolean.class).getTypeConverter().valueOf(model.getTxnProperty(UserEmail.class.getSimpleName() + ".GstInBeingVerified"))){
+            throw new AccessDeniedException("Cannot verify GSTIn manually!");
+        }
+        if (model.isCompanyRegistrationNumberVerified() && model.getRawRecord().isFieldDirty("COMPANY_REGISTRATION_NUMBER_BEING_VERIFIED") &&
+                !model.getReflector().getJdbcTypeHelper().getTypeRef(boolean.class).getTypeConverter().valueOf(model.getTxnProperty(UserEmail.class.getSimpleName() + ".CompanyRegistrationNumberBeingVerified"))){
+            throw new AccessDeniedException("Cannot verify company registration manually!");
+        }
 
         if (!ObjectUtil.isVoid(model.getEmail()) && model.isValidated()) {
             Company company = ensureCompany(model);
@@ -106,13 +122,13 @@ public class BeforeValidateUserEmail extends BeforeModelValidateExtension<UserEm
         }
         if (model.isCompanyRegistrationNumberVerified() &&
                 model.getRawRecord().isFieldDirty("COMPANY_REGISTRATION_NUMBER_VERIFIED") &&
-                !ObjectUtil.isVoid(company.getCompanyRegistrationNumber())){
+                !ObjectUtil.isVoid(model.getCompanyRegistrationNumber())){
             company.setCompanyRegistrationNumber(model.getCompanyRegistrationNumber());
         }
         if (model.isGstInVerified() &&
                 model.getRawRecord().isFieldDirty("GST_IN_VERIFIED") &&
-                !ObjectUtil.isVoid(company.getCompanyGstIn())){
-            company.setCompanyRegistrationNumber(model.getCompanyGstIn());
+                !ObjectUtil.isVoid(model.getCompanyGstIn())){
+            company.setCompanyGstIn(model.getCompanyGstIn());
         }
         company.setTxnProperty("kyc.being.verified",true);
         company.save();

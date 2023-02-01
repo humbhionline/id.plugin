@@ -18,20 +18,16 @@ public class FixHtmlHeader {
         public void invoke(Object... context) {
             Path path = (Path)context[0];
             Head head =  (Head) context[1];
-            head.addControl(new Script("/resources/scripts/node_modules/jquery/dist/jquery.min.js",false));
-            head.addControl(new Script("/resources/scripts/node_modules/lockr/lockr.min.js"));
-            head.addControl(new Css("/resources/scripts/node_modules/fontawesome-free/css/all.min.css"));
-            head.addControl(new Script("/resources/scripts/node_modules/popper.js/dist/umd/popper.min.js"));
-            head.addControl(new Script("/resources/scripts/node_modules/tablesorter/dist/js/jquery.tablesorter.min.js"));
-            head.addControl(new Script("/resources/scripts/node_modules/tablesorter/dist/js/jquery.tablesorter.widgets.min.js"));
-            head.addControl(new Css("/resources/scripts/node_modules/tablesorter/dist/css/theme.bootstrap.min.css"));
-            head.addControl(new Script("/resources/scripts/node_modules/bootstrap-ajax-typeahead/bootstrap-typeahead.js"));
-            head.addControl(new Script("/resources/scripts/node_modules/moment/min/moment-with-locales.min.js"));
-            head.addControl(new Script("/resources/scripts/node_modules/bootstrap4-datetimepicker/build/js/bootstrap-datetimepicker.min.js"));
-            head.addControl(new Script("/resources/scripts/highlight.js/highlight.js"));
-            head.addControl(new Script("/resources/scripts/highlight.js/languages/json.min.js"));
-            head.addControl(new Css("/resources/scripts/highlight.js/styles/github.min.css"));
-
+            head.addControl(new Script("/scripts/node_modules/jquery/dist/jquery.min.js",false));
+            head.addControl(new Script("/scripts/node_modules/lockr/lockr.min.js"));
+            head.addControl(new Css("/scripts/node_modules/fontawesome-free/css/all.min.css"));
+            head.addControl(new Script("/scripts/node_modules/popper.js/dist/umd/popper.min.js"));
+            head.addControl(new Script("/scripts/node_modules/tablesorter/dist/js/jquery.tablesorter.min.js"));
+            head.addControl(new Script("/scripts/node_modules/tablesorter/dist/js/jquery.tablesorter.widgets.min.js"));
+            head.addControl(new Css("/scripts/node_modules/tablesorter/dist/css/theme.bootstrap.min.css"));
+            head.addControl(new Script("/scripts/node_modules/bootstrap-ajax-typeahead/bootstrap-typeahead.js"));
+            head.addControl(new Script("/scripts/node_modules/moment/min/moment-with-locales.min.js"));
+            head.addControl(new Script("/scripts/node_modules/bootstrap4-datetimepicker/build/js/bootstrap-datetimepicker.min.js"));
 
         }
     }
@@ -40,9 +36,7 @@ public class FixHtmlHeader {
         public void invoke(Object... context) {
             Path path = (Path)context[0];
             Head head =  (Head) context[1];
-
-            //head.addControl(new Css("/resources/templates/css/animate.css"));
-            head.addControl(new Css("/resources/templates/css/global.css"));
+            head.addControl(new Css("/templates/css/global.css"));
         }
     }
 

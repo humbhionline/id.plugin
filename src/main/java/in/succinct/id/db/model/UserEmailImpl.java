@@ -86,7 +86,7 @@ public class UserEmailImpl extends ModelImpl<UserEmail> {
         if (!ObjectUtil.isVoid(ue.getCompanyGstIn())){
             return String.format("https://services.gst.gov.in/services/searchtp?GstInNo=%s&PanNum=%s",
                     ue.getCompanyGstIn(),
-                    ue.getCompanyGstIn().substring(2,ue.getCompanyGstIn().length()-4));
+                    ue.getCompanyGstIn().substring(2,ue.getCompanyGstIn().length()-3));
         }
         return null;
     }

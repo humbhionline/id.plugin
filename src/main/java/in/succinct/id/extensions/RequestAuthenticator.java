@@ -42,7 +42,7 @@ public class RequestAuthenticator implements Extension {
         }
 
         Grant grant = Database.getTable(Grant.class).newRecord();
-        grant.setAccessToken(new String(Base64.getDecoder().decode(schemeDetails.getBytes(StandardCharsets.UTF_8))));
+        grant.setAccessToken(schemeDetails);
         grant = Database.getTable(Grant.class).find(grant,false);
         if (grant!= null ){
             if (grant.getAccessTokenExpiry() > System.currentTimeMillis()) {

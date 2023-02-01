@@ -114,7 +114,7 @@ h4 {
 }
 
 .col-form-label {
-  @apply text-dark text-sm sm:text-base mx-1 sm:mb-2 relative top-2 pb-2 sm:static;
+  @apply text-dark text-sm sm:text-base mx-1 sm:mb-2 relative top-2 pt-1 sm:static;
 }
 .text-area {
   @apply border-0 border-b-2 border-[#e1e1ff] py-2 focus:border-primary focus:outline-none;
@@ -178,7 +178,7 @@ h4 {
 }
 
 .row {
-  @apply flex flex-wrap items-end;
+  @apply flex flex-wrap items-start;
 }
 .timestamp-box,
 .text-box,
@@ -191,11 +191,11 @@ h4 {
   @apply mb-[8pt]  py-2 px-2  flex h-full w-full border-0 border-b-2  rounded-lg  border-gray-300 focus:border-primary focus:outline-none;
 }
 .check-box {
-  @apply mb-[8pt]  py-2 mx-1 flex border-0 border-b-2  rounded-lg  border-gray-300 focus:border-primary focus:outline-none;
+  @apply mb-[8pt]  mt-2 mx-1 flex border-2  rounded-lg  border-gray-600 focus:border-primary focus:outline-none;
 }
 
 *[readonly] {
-  @apply mb-[8pt] px-1 h-full text-gray-600 border-0 focus:outline-none;
+  @apply mb-[8pt] px-1  text-gray-600 border-0 focus:outline-none;
   pointer-events: none;
 }
 div.div[readonly] {

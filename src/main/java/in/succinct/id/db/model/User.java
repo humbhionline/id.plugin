@@ -30,4 +30,5 @@ public interface User extends com.venky.swf.plugins.collab.db.model.user.User {
     public void setEmailVerified(boolean emailKycVerified);
 
     List<UserDocument> getDocuments();
+    List<CompanyAdministrator> getCompanyAdministrators();
 }

@@ -4,6 +4,7 @@ import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.extensions.ParticipantExtension;
 import in.succinct.id.db.model.Company;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -16,6 +17,6 @@ public class CompanyParticipantExtension extends ParticipantExtension<Company> {
         if (ObjectUtil.equals(fieldName,"ADMIN_ID")){
             return Collections.singletonList(user.getId());
         }
-        return null;
+        return new ArrayList<>();
     }
 }

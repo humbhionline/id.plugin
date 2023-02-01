@@ -6,6 +6,7 @@ import com.venky.swf.db.extensions.BeforeModelValidateExtension;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.plugins.collab.db.model.user.Phone;
 import in.succinct.id.db.model.User;
+import org.hazlewood.connor.bottema.emailaddress.EmailAddressValidator;
 
 public class BeforeValidateUser extends BeforeModelValidateExtension<User> {
     static {
@@ -13,7 +14,19 @@ public class BeforeValidateUser extends BeforeModelValidateExtension<User> {
     }
     @Override
     public void beforeValidate(User model) {
-
+        //Force login to be email
+        if (!ObjectUtil.isVoid(model.getName()) && model.getName().contains("@")){
+            if (EmailAddressValidator.isValid(model.getName())) {
+                if (ObjectUtil.isVoid(model.getEmail()) ||
+                        !ObjectUtil.equals(model.getName(),model.getEmail())) {
+                    model.setEmail(model.getName().toLowerCase());
+                }
+            }else {
+                throw new RuntimeException("Please enter a valid email address!");
+            }
+        }else if (!ObjectUtil.equals(model.getName(),"root")){
+            throw new RuntimeException("Please enter a valid email address!");
+        }
 
         if (!ObjectUtil.isVoid(model.getPhoneNumber())){
             model.setPhoneNumber(Phone.sanitizePhoneNumber(model.getPhoneNumber()));
@@ -58,3 +71,4 @@ public class BeforeValidateUser extends BeforeModelValidateExtension<User> {
         }
     }
 }
+

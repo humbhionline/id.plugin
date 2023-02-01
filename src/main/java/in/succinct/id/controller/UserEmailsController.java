@@ -1,5 +1,6 @@
 package in.succinct.id.controller;
 
+import com.venky.core.util.ObjectUtil;
 import com.venky.swf.controller.annotations.SingleRecordAction;
 import com.venky.swf.db.Database;
 import com.venky.swf.path.Path;
@@ -7,6 +8,7 @@ import com.venky.swf.views.RedirectorView;
 import com.venky.swf.views.View;
 import in.succinct.id.db.model.User;
 import in.succinct.id.db.model.UserEmail;
+import in.succinct.id.db.model.VerifiableDocument;
 
 public class UserEmailsController extends com.venky.swf.plugins.collab.controller.UserEmailsController {
     public UserEmailsController(Path path) {
@@ -25,6 +27,32 @@ public class UserEmailsController extends com.venky.swf.plugins.collab.controlle
         }
         if (getReturnIntegrationAdaptor() == null) {
             getPath().addInfoMessage(message);
+            return back();
+        }else {
+            return show(userEmail);
+        }
+    }
+
+    @SingleRecordAction(icon = "fas fa-check")
+    public View verifyGst(long id){
+        UserEmail userEmail = Database.getTable(UserEmail.class).get(id);
+        userEmail.setGstInVerified(true);
+        userEmail.setTxnProperty(UserEmail.class.getSimpleName() + ".GstInBeingVerified",true);
+        userEmail.save();
+        if (getReturnIntegrationAdaptor() == null) {
+            return back();
+        }else {
+            return show(userEmail);
+        }
+    }
+
+    @SingleRecordAction(icon = "fas fa-check")
+    public View verifyCompanyRegistration(long id){
+        UserEmail userEmail = Database.getTable(UserEmail.class).get(id);
+        userEmail.setCompanyRegistrationNumberVerified(true);
+        userEmail.setTxnProperty(UserEmail.class.getSimpleName() + ".CompanyRegistrationNumberBeingVerified",true);
+        userEmail.save();
+        if (getReturnIntegrationAdaptor() == null) {
             return back();
         }else {
             return show(userEmail);

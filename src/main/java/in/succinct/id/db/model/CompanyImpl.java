@@ -11,16 +11,16 @@ public class CompanyImpl extends ModelImpl<Company> {
     public CompanyImpl(Company company){
         super(company);
     }
-    public Long getAdminId(){
+    public long getAdminId(){
+        com.venky.swf.db.model.User u = Database.getInstance().getCurrentUser();
+        User user= (u == null ? null :u.getRawRecord().getAsProxy(User.class));
         if (getRawRecord().isNewRecord()){
-            return null;
+            return 0L;
         }
 
         Company company  = getProxy();
         List<CompanyAdministrator> administrators = company.getCompanyAdministrators();
 
-        com.venky.swf.db.model.User u = Database.getInstance().getCurrentUser();
-        User user= (u == null ? null :u.getRawRecord().getAsProxy(User.class));
 
         if (user != null) {
             if (administrators.stream().anyMatch(a -> ObjectUtil.equals(a.getUserId(), user.getId()))){
@@ -33,5 +33,7 @@ public class CompanyImpl extends ModelImpl<Company> {
         return 1L;
     }
 
+    public void setAdminId(long id){
 
+    }
 }

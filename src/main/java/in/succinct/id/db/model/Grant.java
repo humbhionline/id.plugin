@@ -8,10 +8,12 @@ import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.application.Application;
 
 public interface Grant extends Model {
+    @UNIQUE_KEY
     public Long getApplicationId();
     public void setApplicationId(Long id);
     public Application getApplication();
 
+    @UNIQUE_KEY
     public Long getUserId();
     public void setUserId(Long id);
     public User getUser();

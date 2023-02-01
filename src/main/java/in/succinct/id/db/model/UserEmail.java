@@ -4,6 +4,8 @@ import com.venky.swf.db.annotations.column.COLUMN_DEF;
 import com.venky.swf.db.annotations.column.IS_NULLABLE;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
+import com.venky.swf.db.annotations.column.indexing.Index;
+import com.venky.swf.db.annotations.column.pm.PARTICIPANT;
 import com.venky.swf.db.annotations.column.ui.HIDDEN;
 import com.venky.swf.db.annotations.column.ui.PROTECTION;
 import com.venky.swf.db.annotations.column.ui.PROTECTION.Kind;
@@ -24,7 +26,8 @@ public interface UserEmail extends com.venky.swf.plugins.collab.db.model.user.Us
     public void setCompanyGstIn(String companyGstIn);
 
     @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
-    @PROTECTION(Kind.EDITABLE)
+    @PROTECTION(Kind.DISABLED)
+    @Index
     public boolean isGstInVerified();
     public void setGstInVerified(boolean gstInVerified);
 
@@ -32,7 +35,8 @@ public interface UserEmail extends com.venky.swf.plugins.collab.db.model.user.Us
     public void setCompanyRegistrationNumber(String companyRegistrationNumber);
 
     @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
-    @PROTECTION(Kind.EDITABLE)
+    @PROTECTION(Kind.DISABLED)
+    @Index
     public boolean isCompanyRegistrationNumberVerified();
     public void setCompanyRegistrationNumberVerified(boolean companyRegistrationNumberVerified);
 
@@ -45,6 +49,7 @@ public interface UserEmail extends com.venky.swf.plugins.collab.db.model.user.Us
 
     @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
     @PROTECTION(Kind.DISABLED)
+    @Index
     public boolean isDomainVerified();
     public void setDomainVerified(boolean domainVerified);
 
