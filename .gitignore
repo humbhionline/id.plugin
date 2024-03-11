@@ -10,9 +10,11 @@ overrideProperties/
 nohup.out
 database/*db*
 database/*business*
+database.*/*
 docs/_build
 src/main/resources/templates/node_modules/
 src/main/resources/scripts/node_modules/
+.index/*
 
 /.gradle/
 .keystore

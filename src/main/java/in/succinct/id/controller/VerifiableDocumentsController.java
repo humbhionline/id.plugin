@@ -6,7 +6,7 @@ import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.path.Path;
 import com.venky.swf.views.View;
-import in.succinct.id.db.model.VerifiableDocument;
+import in.succinct.id.db.model.onboarding.VerifiableDocument;
 
 public class VerifiableDocumentsController<M extends VerifiableDocument & Model> extends ModelController<M> {
     public VerifiableDocumentsController(Path path) {

@@ -1,63 +1,24 @@
 package in.succinct.id.util;
 
-import com.venky.core.collections.SequenceSet;
-import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.Database;
-import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.path._IPath;
-import com.venky.swf.plugins.collab.db.model.participants.admin.Company;
 import com.venky.swf.plugins.security.db.model.Role;
-import com.venky.swf.pm.DataSecurityFilter;
 import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
-import in.succinct.id.db.model.User;
+import in.succinct.id.db.model.onboarding.company.Company;
+import in.succinct.id.db.model.onboarding.user.User;
 
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.stream.Collectors;
 
 public class CompanyUtil {
+
     public static Company getCompany(){
-        Long id = getCompanyId();
-        return Database.getTable(Company.class).get(id);
-    }
-
-    public static Long getCompanyId(){
-        String domainName = getFQDomainName();
-        List<Company> companies = new ArrayList<>();
-        if (!ObjectUtil.isVoid(domainName)){
-            companies = new Select().from(Company.class).
-                    where(new Expression(ModelReflector.instance(Company.class).getPool(),
-                            "DOMAIN_NAME", Operator.LK, "%"+getFQDomainName()+"%")).execute();
-        }
-
-        if (companies.isEmpty()){
-            com.venky.swf.db.model.User sessionUser = Database.getInstance().getCurrentUser();
-
-            if (sessionUser != null){
-                User user = sessionUser.getRawRecord().getAsProxy(User.class);
-                if (user.getCompanyId() != null){
-                    companies.add(user.getCompany().getRawRecord().getAsProxy(Company.class));
-                }
-            }
-        }
-        if (companies.isEmpty()){
-            companies = new Select().from(Company.class).execute(2);
-            if (companies.size() > 1){
-                companies.clear();
-            }
-        }
-        SequenceSet<Long> companyIds = DataSecurityFilter.getIds(companies);
-        Long companyId = null;
-        if (!companyIds.isEmpty()){
-            companyId = companyIds.get(0);
-        }
-        return companyId;
-    }
-    public static String getFQDomainName(){
         _IPath path = Database.getInstance().getContext(_IPath.class.getName());
         String domainName = null;
         if (path == null){
@@ -65,27 +26,47 @@ public class CompanyUtil {
         }else {
             domainName = path.getRequest().getServerName();
         }
-        return getFQDomainName(domainName);
+        return getCompany(domainName);
     }
-    public static String getFQDomainName(String domainName) {
+    public static Company getCompany(String domainName){
         List<String> domainParts = new ArrayList<>();
         StringTokenizer tok = new StringTokenizer(domainName,".");
         while (tok.hasMoreTokens()){
             domainParts.add(tok.nextToken());
         }
-        while (domainParts.size() > 2){
+
+        List<String> possibleDomainNames = new ArrayList<>();
+        while (domainParts.size() >= 2){
+            possibleDomainNames.add(getFQDomainName(domainParts));
             domainParts.remove(0);
         }
-        StringBuilder fQdomainName = new StringBuilder();
-        for (String part: domainParts){
-            if(fQdomainName.length() > 0){
-                fQdomainName.append(".");
-            }
-            fQdomainName.append(part);
+        Select select =new Select().from(Company.class);
+        select.where(new Expression(select.getPool(),"DOMAIN_NAME" , Operator.IN, possibleDomainNames.toArray()));
+        List<Company> companies = select.execute();
+        if (companies.isEmpty()){
+            Company company =Database.getTable(Company.class).newRecord();
+            company.setDomainName(possibleDomainNames.get(possibleDomainNames.size()-1));
+            company.setName(company.getDomainName());
+            company.setDateOfIncorporation(new Date(System.currentTimeMillis()));
+            return company;
+        }else if (companies.size() == 1) {
+            return companies.get(0);
+        }else {
+            throw new RuntimeException("Multiple companies are registered. Not able to identify your company");
         }
-        return fQdomainName.toString();
-
     }
+    private static String getFQDomainName(List<String> domainParts){
+        StringBuilder FQDomainName = new StringBuilder();
+        for (String part: domainParts){
+            if(FQDomainName.length() > 0){
+                FQDomainName.append(".");
+            }
+            FQDomainName.append(part);
+        }
+        return FQDomainName.toString();
+    }
+
+
     
     public static List<User> getAdminUsers() {
 

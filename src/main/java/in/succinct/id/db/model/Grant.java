@@ -6,6 +6,7 @@ import com.venky.swf.db.annotations.column.UNIQUE_KEY;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.application.Application;
+import in.succinct.id.db.model.onboarding.user.User;
 
 public interface Grant extends Model {
     @UNIQUE_KEY

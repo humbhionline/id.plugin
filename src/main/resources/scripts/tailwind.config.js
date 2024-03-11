@@ -1,11 +1,14 @@
 module.exports = {
   content: ["../templates/**/html/**/*.{html,js,md}", "../templates/**/markdown/**/*.{html,js,md}", "../scripts/application.js" , "../templates/css/_global.css"],
-  safelist: [ "offset-8", "offset-5", "offset-4" , "offset-3", "offset-2", "text-right", 
+  safelist: [ "offset-8", "offset-5", "offset-4" , "offset-3", "offset-2", 
+    "text-right", "w-full",
     "lg:offset-5", "lg:offset-4" ,"lg:offset-3","lg:offset-2",
     "sm:offset-5", "sm:offset-4","sm:offset-3","sm:offset-2",
     "col-2", "col-4", "col-6", "col-8", "col-12",
     "lg:col-2", "lg:col-4", "lg:col-6", "lg:col-8", "lg:col-12",
-    "sm:col-2", "sm:col-4", "sm:col-6", "sm:col-8", "sm:col-12"],
+    "sm:col-2", "sm:col-4", "sm:col-6", "sm:col-8", "sm:col-12",
+    "p-1","m-1","px-1","py-1"
+    ],
   theme: {
     screens: {
       sm: "540px",
