@@ -5,10 +5,13 @@ import com.venky.swf.db.Database;
 import com.venky.swf.db.extensions.ModelOperationExtension;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.plugins.collab.db.model.user.Phone;
+import com.venky.swf.plugins.collab.db.model.user.UserEmail;
+import com.venky.swf.plugins.mobilesignup.db.model.SignUp;
 import com.venky.swf.plugins.security.db.model.Role;
 import com.venky.swf.plugins.security.db.model.UserRole;
 import in.succinct.id.db.model.DefaultUserRoles;
 import in.succinct.id.db.model.onboarding.user.User;
+import in.succinct.id.util.CompanyUtil;
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressValidator;
 
 import java.util.Objects;
@@ -32,6 +35,20 @@ public class UserExtension extends ModelOperationExtension<User> {
     @Override
     public void beforeValidate(User model) {
         //Force login to be email
+        StringBuilder longName = new StringBuilder();
+        if (!ObjectUtil.isVoid(model.getFirstName())){
+            longName.append(model.getFirstName());
+        }
+        if (!ObjectUtil.isVoid(model.getLastName())){
+            if (longName.length() > 0){
+                longName.append(" ");
+            }
+            longName.append(model.getLastName());
+        }
+        if (longName.length() > 0 ){
+            model.setLongName(longName.toString());
+        }
+
         if (!ObjectUtil.isVoid(model.getName()) && model.getName().contains("@")){
             if (EmailAddressValidator.isValid(model.getName())) {
                 if (ObjectUtil.isVoid(model.getEmail()) ||
@@ -60,7 +77,6 @@ public class UserExtension extends ModelOperationExtension<User> {
         validateAddress(model);
 
     }
-
     private void validateAddress(User u){
         User model = u.getRawRecord().getAsProxy(User.class);
 

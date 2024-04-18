@@ -1,6 +1,7 @@
 package in.succinct.id.db.model.onboarding.company;
 
 import com.venky.swf.db.annotations.column.COLUMN_DEF;
+import com.venky.swf.db.annotations.column.COLUMN_SIZE;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
 import com.venky.swf.db.annotations.column.pm.PARTICIPANT;
 import com.venky.swf.db.annotations.column.ui.HIDDEN;
@@ -23,6 +24,18 @@ public interface Company extends com.venky.swf.plugins.collab.db.model.participa
 
     @HIDDEN
     public List<ClaimRequest> getClaimRequests();
+
+    public List<CompanyNetworkDomain> getCompanyNetworkDomains();
+    public List<CompanyNetworkUsage> getCompanyNetworkUsages();
+
+    public String getRegistrationNumber();
+    public void setRegistrationNumber(String registrationNumber);
+
+    @COLUMN_SIZE(2048)
+    // To Store random json Information not relevant to id platform but rather to its consumer like gex
+    public String getMetaData();
+    public void setMetaData(String metaData);
+
 
     public ClaimRequest claim();
 }

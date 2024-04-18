@@ -12,5 +12,12 @@ public class VerifiableDocumentExtension<M extends VerifiableDocument & Model> e
         if (!ObjectUtil.equals(true,document.getTxnProperty("being.verified")) && document.getRawRecord().isFieldDirty("VERIFICATION_STATUS") && !document.getVerificationStatus().equals(VerifiableDocument.PENDING)){
              throw new AccessDeniedException();
         }
+        if (document.getFileContentSize() <= 0 &&document.getFile() != null){
+            try {
+                document.setFileContentSize(document.getFile().available());
+            }catch (Exception ex){
+                //
+            }
+        }
     }
 }

@@ -38,6 +38,6 @@ public class PrivateKeyFinder implements Extension {
         CryptoKey signingKey = CryptoKey.find(keyId,CryptoKey.PURPOSE_SIGNING);
 
         String privateKey = signingKey.getPrivateKey();
-        holder.set(String.format("%s:%s",keyId,privateKey));
+        holder.set(String.format("%s|%s:%s",application.getAppId(),keyId,privateKey));
     }
 }

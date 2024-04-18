@@ -1,6 +1,5 @@
 package in.succinct.id.controller;
 
-import com.venky.cache.Cache;
 import com.venky.cache.UnboundedCache;
 import com.venky.core.date.DateUtils;
 import com.venky.core.string.StringUtil;
@@ -9,7 +8,6 @@ import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
-import com.venky.swf.db.model.application.ApplicationUtil;
 import com.venky.swf.db.model.application.api.OpenApi;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.path.Path;
@@ -27,7 +25,6 @@ import com.venky.swf.views.View;
 import in.succinct.beckn.Organization;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Subscriber;
-import in.succinct.beckn.Subscriber.Domains;
 import in.succinct.beckn.Subscribers;
 import in.succinct.id.db.model.onboarding.company.Application;
 import in.succinct.id.db.model.onboarding.company.ApplicationContext;
@@ -41,11 +38,8 @@ import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 
 import java.nio.charset.StandardCharsets;
-
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -212,22 +206,20 @@ public class SubscribersController extends Controller {
                 ensureApplicationPublicKeys(application, subscriber);
             }
 
-            for (String sDomain : subscriber.getDomains()){
-                Subscriber outSubscriber = new Subscriber(subscriber.toString());
-                if (!ObjectUtil.isVoid(subscriber.getSubscriberUrl())){
-                    EndPoint endPoint= Database.getTable(EndPoint.class).newRecord();
-                    endPoint.setApplicationId(application.getId());
-                    endPoint.setBaseUrl(subscriber.getSubscriberUrl());
-                    endPoint.setOpenApiId(OpenApi.find(subscriber.getType()).getId());
-                    endPoint = Database.getTable(EndPoint.class).getRefreshed(endPoint);
-                    if (endPoint.getRawRecord().isNewRecord()){
-                        endPoint.save();
-                    }
+            Subscriber outSubscriber = new Subscriber(subscriber.toString());
+            if (!ObjectUtil.isVoid(subscriber.getSubscriberUrl())){
+                EndPoint endPoint= Database.getTable(EndPoint.class).newRecord();
+                endPoint.setApplicationId(application.getId());
+                endPoint.setBaseUrl(subscriber.getSubscriberUrl());
+                endPoint.setOpenApiId(OpenApi.find(subscriber.getType()).getId());
+                endPoint = Database.getTable(EndPoint.class).getRefreshed(endPoint);
+                if (endPoint.getRawRecord().isNewRecord()){
+                    endPoint.save();
                 }
-                loadRegion(subscriber,application);
-                outSubscriber.setStatus(Subscriber.SUBSCRIBER_STATUS_INITIATED);
-                outSubscribers.add(outSubscriber);
             }
+            loadRegion(subscriber,application);
+            outSubscriber.setStatus(Subscriber.SUBSCRIBER_STATUS_INITIATED);
+            outSubscribers.add(outSubscriber);
         }
         if (outSubscribers.size() != 1) {
             return new BytesView(getPath(), outSubscribers.getInner().toString().getBytes(StandardCharsets.UTF_8), MimeType.APPLICATION_JSON);
@@ -408,6 +400,7 @@ public class SubscribersController extends Controller {
             networkRoleIds = indexer.findIds(q, Select.MAX_RECORDS_ALL_RECORDS);
             where.add(Expression.createExpression(ModelReflector.instance(Application.class).getPool(), "ID", Operator.IN, networkRoleIds.toArray()));
         }
+        where.add(new Expression(ModelReflector.instance(Application.class).getPool(),"ID", Operator.GT, 0));
 
         Select okSelectNetworkRole = new Select().from(Application.class).where(where);
         if (regionPassed) {
