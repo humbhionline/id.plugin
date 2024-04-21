@@ -28,6 +28,8 @@ public class FixHtmlHeader {
             head.addControl(new Script("/scripts/node_modules/bootstrap-ajax-typeahead/bootstrap-typeahead.js"));
             head.addControl(new Script("/scripts/node_modules/moment/min/moment-with-locales.min.js"));
             head.addControl(new Script("/scripts/node_modules/bootstrap4-datetimepicker/build/js/bootstrap-datetimepicker.min.js"));
+            head.addControl(new Script("/scripts/node_modules/mermaid/dist/mermaid.min.js"));
+
 
         }
     }
