@@ -195,8 +195,8 @@ h4 {
 }
 
 *[readonly] {
-  @apply mb-[8pt] px-1  text-gray-600 border-0 focus:outline-none;
-  pointer-events: none;
+  @apply mb-[8pt] px-1 h-full text-gray-600 border-0 focus:outline-none;
+  #pointer-events: none;
 }
 div.div[readonly] {
   @apply mb-4;
