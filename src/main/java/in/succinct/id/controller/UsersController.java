@@ -167,7 +167,7 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         SequenceSet<String> finalFields = new SequenceSet<>();
         finalFields.addAll(fields);
         excludedFields.forEach(finalFields::remove);
-        excludedFields.addAll(oldFields);
+        finalFields.addAll(oldFields);
         map.put(clazz,finalFields);
     }
     @Override

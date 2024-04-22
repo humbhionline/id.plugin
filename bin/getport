@@ -1,1 +1,0 @@
-cat overrideProperties/config/envvars |grep  'port='
