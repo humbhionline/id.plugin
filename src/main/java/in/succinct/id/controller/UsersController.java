@@ -7,7 +7,6 @@ import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.Model;
-
 import com.venky.swf.db.model.application.Application;
 import com.venky.swf.db.model.application.api.OpenApi;
 import com.venky.swf.db.model.reflection.ModelReflector;
@@ -16,6 +15,10 @@ import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.db.model.config.City;
 import com.venky.swf.plugins.collab.db.model.config.Country;
 import com.venky.swf.plugins.collab.db.model.config.State;
+import com.venky.swf.plugins.collab.db.model.participants.ApplicationPublicKey;
+import com.venky.swf.plugins.collab.db.model.participants.EndPoint;
+import com.venky.swf.plugins.collab.db.model.participants.EventHandler;
+import com.venky.swf.plugins.collab.db.model.participants.WhiteListIp;
 import com.venky.swf.plugins.collab.db.model.user.UserEmail;
 import com.venky.swf.plugins.collab.db.model.user.UserPhone;
 import com.venky.swf.routing.Config;
@@ -28,25 +31,19 @@ import com.venky.swf.views.HtmlView;
 import com.venky.swf.views.HtmlView.StatusType;
 import com.venky.swf.views.RedirectorView;
 import com.venky.swf.views.View;
-import com.venky.swf.plugins.collab.db.model.participants.EventHandler;
-import com.venky.swf.plugins.collab.db.model.participants.ApplicationPublicKey;
 import com.venky.swf.views.controls.page.Body;
 import com.venky.swf.views.controls.page.Html;
 import com.venky.swf.views.controls.page.Link;
 import com.venky.swf.views.controls.page.layout.Paragraph;
 import com.venky.swf.views.login.LoginView.LoginContext;
 import in.succinct.id.db.model.onboarding.company.Company;
-import in.succinct.id.db.model.onboarding.company.CompanyDocument;
 import in.succinct.id.db.model.onboarding.company.CompanyNetworkDomain;
 import in.succinct.id.db.model.onboarding.company.CompanyNetworkUsage;
 import in.succinct.id.db.model.onboarding.company.NetworkDomain;
 import in.succinct.id.db.model.onboarding.company.NetworkUsage;
-import in.succinct.id.db.model.onboarding.company.SubmittedCompanyDocument;
-import in.succinct.id.db.model.onboarding.user.UserDocument;
-import com.venky.swf.plugins.collab.db.model.participants.EndPoint;
 import in.succinct.id.db.model.onboarding.user.User;
-import in.succinct.id.db.model.onboarding.user.SubmittedUserDocument;
-import com.venky.swf.plugins.collab.db.model.participants.WhiteListIp;
+import in.succinct.plugins.kyc.db.model.submissions.Document;
+import in.succinct.plugins.kyc.db.model.submissions.SubmittedDocument;
 import org.json.simple.JSONObject;
 
 import java.nio.charset.StandardCharsets;
@@ -73,6 +70,7 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
 
     protected View sendPasswordResetEmail(User user, String subject, String text){
         if (ObjectUtil.isVoid(user.getApiKey())){
+
             user.generateApiKey(true);
         }
 
@@ -97,9 +95,14 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         if (getIntegrationAdaptor() != null) {
             return getIntegrationAdaptor().createStatusResponse(getPath(), null, "Mail sent with instructions to set password");
         }else {
-            HtmlView view  = createLoginView(LoginContext.PASSWORD_RESET);
-            view.setStatus(StatusType.INFO,"Message sent with instructions to set password");
-            return view;
+            if (getPath().getSessionUserId() == null) {
+                HtmlView view = createLoginView(LoginContext.PASSWORD_RESET);
+                view.setStatus(StatusType.INFO, "Message sent with instructions to set password");
+                return view;
+            }else {
+                getPath().addInfoMessage("Message sent with instructions to set password");
+                return back();
+            }
         }
 
     }
@@ -185,15 +188,13 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         addToIncludedModelFieldsMap(map,ApplicationPublicKey.class,Arrays.asList("ID","APPLICATION_ID"));
         addToIncludedModelFieldsMap(map,EndPoint.class,Arrays.asList("ID","APPLICATION_ID"));
         addToIncludedModelFieldsMap(map,WhiteListIp.class,Arrays.asList("ID","APPLICATION_ID"));
-        addToIncludedModelFieldsMap(map,SubmittedUserDocument.class,Arrays.asList("ID","USER_ID"));
+        addToIncludedModelFieldsMap(map, SubmittedDocument.class,Arrays.asList("ID","DOCUMENTED_MODEL_ID", "DOCUMENTED_MODEL_NAME"));
         addToIncludedModelFieldsMap(map,OpenApi.class,Collections.singletonList("ID"));
         addToIncludedModelFieldsMap(map,Country.class,Collections.singletonList("ID"));
         addToIncludedModelFieldsMap(map,State.class,Collections.singletonList("ID"));
         addToIncludedModelFieldsMap(map,City.class,Collections.singletonList("ID"));
         addToIncludedModelFieldsMap(map,Company.class,Collections.singletonList("ID"));
-        addToIncludedModelFieldsMap(map,UserDocument.class,Collections.singletonList("ID"));
-        addToIncludedModelFieldsMap(map, SubmittedCompanyDocument.class,Arrays.asList("ID","COMPANY_ID"));
-        addToIncludedModelFieldsMap(map, CompanyDocument.class,Collections.singletonList("ID"));
+        addToIncludedModelFieldsMap(map, Document.class,Collections.singletonList("ID"));
         addToIncludedModelFieldsMap(map, CompanyNetworkDomain.class,Arrays.asList("ID","COMPANY_ID"));
         addToIncludedModelFieldsMap(map, NetworkDomain.class,Collections.singletonList("ID"));
         addToIncludedModelFieldsMap(map, CompanyNetworkUsage.class,Arrays.asList("ID","COMPANY_ID"));
@@ -212,7 +213,7 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         removeChildModelClasses(m,Company.class,User.class);
         removeChildModelClasses(m,Company.class,UserEmail.class);
 
-        removeChildModelClasses(m,User.class, SubmittedUserDocument.class);
+        removeChildModelClasses(m,User.class, SubmittedDocument.class);
         //m.get(User.class).add(UserDocument.class);
         m.get(Company.class).add(Application.class);
         m.get(Application.class).addAll(Arrays.asList(ApplicationPublicKey.class, EventHandler.class,WhiteListIp.class, EndPoint.class));

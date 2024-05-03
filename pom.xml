@@ -48,15 +48,10 @@
         <version>LATEST</version>
         <scope>test</scope>
     </dependency>
-      <dependency>
-          <groupId>com.github.venkatramanm.swf-all</groupId>
-          <artifactId>swf-plugin-collab</artifactId>
-          <version>[${revision},)</version>
-      </dependency>
         <dependency>
-            <groupId>com.github.venkatramanm.swf-all</groupId>
-            <artifactId>swf-plugin-audit</artifactId>
-            <version>[2.10,)</version>
+            <groupId>in.succinct</groupId>
+            <artifactId>kyc.plugin</artifactId>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
@@ -76,7 +71,7 @@
         <dependency>
             <groupId>net.lingala.zip4j</groupId>
             <artifactId>zip4j</artifactId>
-            <version>2.11.2</version>
+            <version>2.11.5</version>
         </dependency>
 
         <!--

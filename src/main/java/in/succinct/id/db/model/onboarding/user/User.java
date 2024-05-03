@@ -6,11 +6,13 @@ import com.venky.swf.db.annotations.column.IS_NULLABLE;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
 import com.venky.swf.db.annotations.column.ui.HIDDEN;
+import in.succinct.plugins.kyc.db.model.DocumentedModel;
 
 import java.sql.Date;
 import java.util.List;
 
-public interface User extends com.venky.swf.plugins.collab.db.model.user.User {
+public interface User extends com.venky.swf.plugins.collab.db.model.user.User , DocumentedModel {
+    public static final String[] DEFAULT_DOCUMENTS = new String[]{};
 
     @IS_NULLABLE
     public Date getDateOfBirth();
@@ -41,5 +43,4 @@ public interface User extends com.venky.swf.plugins.collab.db.model.user.User {
     public String getLastName();
     public void setLastName(String lastName);
 
-    List<SubmittedUserDocument> getSubmittedUserDocuments();
 }

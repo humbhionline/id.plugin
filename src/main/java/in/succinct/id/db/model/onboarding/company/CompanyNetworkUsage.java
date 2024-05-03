@@ -13,4 +13,5 @@ public interface CompanyNetworkUsage extends Model , CompanySpecific {
     public void setNetworkUsageId(Long id);
     public NetworkUsage getNetworkUsage();
 
+
 }

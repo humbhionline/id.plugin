@@ -8,18 +8,15 @@ import com.venky.swf.db.annotations.column.ui.HIDDEN;
 import com.venky.swf.db.annotations.column.ui.PROTECTION;
 import com.venky.swf.db.annotations.column.ui.PROTECTION.Kind;
 import com.venky.swf.db.annotations.model.MENU;
+import in.succinct.plugins.kyc.db.model.DocumentedModel;
 
 import java.util.List;
 
-public interface Company extends com.venky.swf.plugins.collab.db.model.participants.admin.Company {
+public interface Company extends com.venky.swf.plugins.collab.db.model.participants.admin.Company , DocumentedModel {
 
-    @PROTECTION(Kind.DISABLED)
-    @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
-    public boolean isKycComplete();
-    public void setKycComplete(boolean kycComplete);
+    public static final String[] DEFAULT_DOCUMENTS = new String[]{"Company Registration","Company Tax Identifier","Previous Year Tax filing"};
 
 
-    public List<SubmittedCompanyDocument> getSubmittedDocuments();
 
     @HIDDEN
     public List<ClaimRequest> getClaimRequests();
@@ -30,11 +27,8 @@ public interface Company extends com.venky.swf.plugins.collab.db.model.participa
     public String getRegistrationNumber();
     public void setRegistrationNumber(String registrationNumber);
 
-    @COLUMN_SIZE(2048)
-    // To Store random json Information not relevant to id platform but rather to its consumer like gex
-    public String getMetaData();
-    public void setMetaData(String metaData);
-
+    public String getTaxIdentificationNumber();
+    public void setTaxIdentificationNumber(String taxIdentificationNumber);
 
     public ClaimRequest claim();
 }

@@ -14,6 +14,7 @@ import in.succinct.id.db.model.onboarding.user.User;
 import in.succinct.id.util.CompanyUtil;
 import org.hazlewood.connor.bottema.emailaddress.EmailAddressValidator;
 
+import java.util.Locale;
 import java.util.Objects;
 
 public class UserExtension extends ModelOperationExtension<User> {
@@ -48,6 +49,11 @@ public class UserExtension extends ModelOperationExtension<User> {
         if (longName.length() > 0 ){
             model.setLongName(longName.toString());
         }
+        if (ObjectUtil.isVoid(model.getName()) && !ObjectUtil.isVoid(model.getEmail())){
+            model.setName(model.getEmail());
+            model.setEmail(null);
+        }
+
 
         if (!ObjectUtil.isVoid(model.getName()) && model.getName().contains("@")){
             if (EmailAddressValidator.isValid(model.getName())) {

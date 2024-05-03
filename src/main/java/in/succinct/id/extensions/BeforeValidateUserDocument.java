@@ -5,28 +5,29 @@ import com.venky.swf.plugins.collab.db.model.config.City;
 import com.venky.swf.plugins.collab.db.model.config.Country;
 import com.venky.swf.plugins.collab.db.model.config.PinCode;
 import com.venky.swf.plugins.collab.db.model.config.State;
-import in.succinct.id.db.model.onboarding.user.UserDocument;
 import in.succinct.id.db.model.onboarding.user.User;
-import in.succinct.id.db.model.onboarding.user.SubmittedUserDocument;
-import in.succinct.id.db.model.onboarding.VerifiableDocument;
 import in.succinct.id.util.AadharEKyc;
 import in.succinct.id.util.AadharEKyc.AadharData;
+import in.succinct.plugins.kyc.db.model.VerifiableDocument;
+import in.succinct.plugins.kyc.db.model.submissions.SubmittedDocument;
+import in.succinct.plugins.kyc.extensions.VerifiableDocumentExtension;
 
 import java.sql.Date;
 
-public class BeforeValidateUserDocument extends VerifiableDocumentExtension<SubmittedUserDocument> {
+public class BeforeValidateUserDocument extends VerifiableDocumentExtension<SubmittedDocument> {
     static {
         registerExtension(new BeforeValidateUserDocument());
     }
 
     @Override
-    public void beforeValidate(SubmittedUserDocument document) {
-        if (document.getDocumentType() == null){
+    public void beforeValidate(SubmittedDocument document) {
+        if (!ObjectUtil.equals("User",document.getDocumentedModelName())){
             return;
         }
-        User user = document.getUser();
 
-        if (document.getDocumentType().getName().equals(UserDocument.AADHAR)){
+        User user = document.extractDocumentedModel();
+
+        if (document.getDocument().getDocumentName().equals("AADHAR")){
             if (!document.getVerificationStatus().equals(VerifiableDocument.APPROVED) && document.getFileContentSize() > 0){
                 try {
                     AadharData data = AadharEKyc.getInstance().parseZip(document.getFile(),document.getPassword());

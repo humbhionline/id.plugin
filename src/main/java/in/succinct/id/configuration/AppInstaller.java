@@ -1,24 +1,21 @@
 package in.succinct.id.configuration;
 
 import com.venky.core.security.Crypt;
-import com.venky.core.string.StringUtil;
 import com.venky.swf.configuration.Installer;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.CryptoKey;
-import com.venky.swf.db.model.application.ApplicationUtil;
 import com.venky.swf.db.model.application.Event;
 import com.venky.swf.db.model.application.api.EndPoint;
 import com.venky.swf.plugins.collab.db.model.config.Role;
-
-
 import com.venky.swf.routing.Config;
 import in.succinct.beckn.Request;
 import in.succinct.id.db.model.DefaultUserRoles;
 import in.succinct.id.db.model.onboarding.company.Application;
 import in.succinct.id.db.model.onboarding.company.ApplicationPublicKey;
 import in.succinct.id.db.model.onboarding.company.Company;
-import in.succinct.id.db.model.onboarding.user.UserDocument;
+import in.succinct.id.db.model.onboarding.user.User;
 import in.succinct.id.util.CompanyUtil;
+import in.succinct.plugins.kyc.db.model.submissions.Document;
 
 import java.security.KeyPair;
 import java.sql.Date;
@@ -124,13 +121,24 @@ public class AppInstaller implements Installer {
     }
 
     public void installDocumentTypes(){
-        if (Database.getTable(UserDocument.class).isEmpty()){
-            for (String defaultDocumentType : UserDocument.DEFAULT_DOCUMENT_TYPES) {
-                UserDocument documentType = Database.getTable(UserDocument.class).newRecord();
-                documentType.setName(defaultDocumentType);
-                documentType.save();
-            }
+        for (String defaultDocumentType : User.DEFAULT_DOCUMENTS) {
+            Document documentType = Database.getTable(Document.class).newRecord();
+            documentType.setDocumentName(defaultDocumentType);
+            documentType.setDocumentedModelName(User.class.getSimpleName());
+            documentType.setRequiredForKyc(true);
+            documentType = Database.getTable(Document.class).getRefreshed(documentType);
+            documentType.save();
         }
+        for (String defaultDocumentType : Company.DEFAULT_DOCUMENTS) {
+            Document documentType = Database.getTable(Document.class).newRecord();
+            documentType.setDocumentName(defaultDocumentType);
+            documentType.setDocumentedModelName(Company.class.getSimpleName());
+            documentType.setRequiredForKyc(true);
+            documentType = Database.getTable(Document.class).getRefreshed(documentType);
+            documentType.save();
+        }
+
+
     }
 }
 
