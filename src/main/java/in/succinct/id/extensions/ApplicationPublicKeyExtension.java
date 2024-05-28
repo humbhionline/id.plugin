@@ -46,6 +46,7 @@ public class ApplicationPublicKeyExtension extends ModelOperationExtension<Appli
                 add("VALID_FROM");
                 add("VALID_UNTIL");
                 add("UPDATED_AT");
+                add("UPDATER_ID");
             }};
             if (instance.getRawRecord().isFieldDirty("VERIFIED")){
                 if (!instance.getReflector().getJdbcTypeHelper().getTypeRef(boolean.class).getTypeConverter().valueOf(instance.getTxnProperty("being.verified"))){

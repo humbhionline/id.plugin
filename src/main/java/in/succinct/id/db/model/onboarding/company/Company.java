@@ -24,11 +24,6 @@ public interface Company extends com.venky.swf.plugins.collab.db.model.participa
     public List<CompanyNetworkDomain> getCompanyNetworkDomains();
     public List<CompanyNetworkUsage> getCompanyNetworkUsages();
 
-    public String getRegistrationNumber();
-    public void setRegistrationNumber(String registrationNumber);
-
-    public String getTaxIdentificationNumber();
-    public void setTaxIdentificationNumber(String taxIdentificationNumber);
 
     public ClaimRequest claim();
 }

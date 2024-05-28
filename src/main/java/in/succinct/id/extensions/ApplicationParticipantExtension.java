@@ -13,7 +13,7 @@ public class ApplicationParticipantExtension extends ParticipantExtension<Applic
         registerExtension(new ApplicationParticipantExtension());
     }
     @Override
-    protected List<Long> getAllowedFieldValues(User user, Application partiallyFilledModel, String fieldName) {
+    public List<Long> getAllowedFieldValues(User user, Application partiallyFilledModel, String fieldName) {
 
         if (fieldName.equals("ADMIN_ID")){
             return Collections.singletonList(user.getId());

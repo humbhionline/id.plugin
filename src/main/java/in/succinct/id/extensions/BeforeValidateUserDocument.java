@@ -24,11 +24,11 @@ public class BeforeValidateUserDocument extends VerifiableDocumentExtension<Subm
         if (!ObjectUtil.equals("User",document.getDocumentedModelName())){
             return;
         }
-
+        super.beforeValidate(document);
         User user = document.extractDocumentedModel();
 
         if (document.getDocument().getDocumentName().equals("AADHAR")){
-            if (!document.getVerificationStatus().equals(VerifiableDocument.APPROVED) && document.getFileContentSize() > 0){
+            if (!document.getVerificationStatus().equals(VerifiableDocument.APPROVED) && document.getFileContentSize()  > 0 && document.getFileContentName().endsWith(".zip")){
                 try {
                     AadharData data = AadharEKyc.getInstance().parseZip(document.getFile(),document.getPassword());
                     if (data != null){
@@ -78,6 +78,6 @@ public class BeforeValidateUserDocument extends VerifiableDocumentExtension<Subm
                 }
             }
         }
-        super.beforeValidate(document);
+
     }
 }

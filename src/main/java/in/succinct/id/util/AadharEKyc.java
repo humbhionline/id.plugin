@@ -215,6 +215,7 @@ public class AadharEKyc {
 
         XMLDocument doc =  XMLDocument.getDocumentFor(new ByteArrayInputStream(baos.toByteArray()));
         if (!verifySignature(doc)){
+            throw new RuntimeException("Could not verify aadhar's signature on the kyc document.");
         }
         return doc;
 

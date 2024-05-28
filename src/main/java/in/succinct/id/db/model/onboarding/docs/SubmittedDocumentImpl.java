@@ -19,6 +19,9 @@ public class SubmittedDocumentImpl extends ModelImpl<SubmittedDocument> {
         return null;
     }
     public void setCompanyId(Long id){
+        if (getReflector().isVoid(id)){
+            return;
+        }
         getProxy().setDocumentedModelId(id);
         getProxy().setDocumentedModelName(Company.class.getSimpleName());
     }
@@ -38,6 +41,9 @@ public class SubmittedDocumentImpl extends ModelImpl<SubmittedDocument> {
         return null;
     }
     public void setUserId(Long id){
+        if (getReflector().isVoid(id)){
+            return;
+        }
         getProxy().setDocumentedModelId(id);
         getProxy().setDocumentedModelName(User.class.getSimpleName());
     }

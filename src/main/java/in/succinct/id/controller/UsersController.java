@@ -8,12 +8,14 @@ import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.application.Application;
+import com.venky.swf.db.model.application.Event;
 import com.venky.swf.db.model.application.api.OpenApi;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.db.model.config.City;
 import com.venky.swf.plugins.collab.db.model.config.Country;
+import com.venky.swf.plugins.collab.db.model.config.PinCode;
 import com.venky.swf.plugins.collab.db.model.config.State;
 import com.venky.swf.plugins.collab.db.model.participants.ApplicationPublicKey;
 import com.venky.swf.plugins.collab.db.model.participants.EndPoint;
@@ -22,6 +24,7 @@ import com.venky.swf.plugins.collab.db.model.participants.WhiteListIp;
 import com.venky.swf.plugins.collab.db.model.user.UserEmail;
 import com.venky.swf.plugins.collab.db.model.user.UserPhone;
 import com.venky.swf.routing.Config;
+import com.venky.swf.routing.KeyCase;
 import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
@@ -43,9 +46,11 @@ import in.succinct.id.db.model.onboarding.company.NetworkDomain;
 import in.succinct.id.db.model.onboarding.company.NetworkUsage;
 import in.succinct.id.db.model.onboarding.user.User;
 import in.succinct.plugins.kyc.db.model.submissions.Document;
+import in.succinct.plugins.kyc.db.model.submissions.KycGroup;
 import in.succinct.plugins.kyc.db.model.submissions.SubmittedDocument;
 import org.json.simple.JSONObject;
 
+import javax.xml.crypto.Data;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -66,7 +71,31 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
     public View current() {
         return new RedirectorView(getPath(),"show/" + getPath().getSessionUserId());
     }
+    private void setUp(){
+        Config.instance().setApiKeyCase(KeyCase.SNAKE);
+        Config.instance().setRootElementNameRequiredForApis(false);
 
+    }
+    private void tearDown(){
+        Config.instance().setApiKeyCase(null);
+        Config.instance().setRootElementNameRequiredForApis(null);
+    }
+    public View resource_json(){
+        try {
+            setUp();
+            return show(getPath().getSessionUserId());
+        }finally {
+            tearDown();
+        }
+    }
+
+    public View verifyAddress(long id){
+        User user = Database.getTable(User.class).get(id);
+        user.setTxnProperty("being.verified",true);
+        user.setAddressVerified(true);
+        user.save();
+        return show(user);
+    }
 
     protected View sendPasswordResetEmail(User user, String subject, String text){
         if (ObjectUtil.isVoid(user.getApiKey())){
@@ -110,11 +139,9 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
     public View sendInviteMail(long id){
         User user = Database.getTable(User.class).get(id);
         return sendPasswordResetEmail(user,"Congratulations! You are granted access to the platform. ", """
-                    Congratulations, You are granted access to the platform.
-                    You need to first set your password to start enjoying its features.
-                    - Admin
-                    
-                    
+                    \nCongratulations, You are granted access to the platform.
+                    \nYou need to first set your password to start enjoying its features.
+                    \n  - Admin
                     """
         );
     }
@@ -169,8 +196,9 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
 
         SequenceSet<String> finalFields = new SequenceSet<>();
         finalFields.addAll(fields);
-        excludedFields.forEach(finalFields::remove);
+//        excludedFields.forEach(finalFields::remove); moved it below oldFields
         finalFields.addAll(oldFields);
+        excludedFields.forEach(finalFields::remove);
         map.put(clazz,finalFields);
     }
     @Override
@@ -184,21 +212,28 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         addToIncludedModelFieldsMap(map,UserPhone.class,Arrays.asList("USER_ID","ID"));
         addToIncludedModelFieldsMap(map,UserEmail.class,Arrays.asList("USER_ID","ID"));
         addToIncludedModelFieldsMap(map,Application.class,Arrays.asList("ID","COMPANY_ID","ADMIN_ID"));
-        addToIncludedModelFieldsMap(map,EventHandler.class,Arrays.asList("ID","APPLICATION_ID","ADMIN_ID"));
+        addToIncludedModelFieldsMap(map, Event.class,Collections.singletonList("ID"));
+
         addToIncludedModelFieldsMap(map,ApplicationPublicKey.class,Arrays.asList("ID","APPLICATION_ID"));
         addToIncludedModelFieldsMap(map,EndPoint.class,Arrays.asList("ID","APPLICATION_ID"));
+        addToIncludedModelFieldsMap(map,EventHandler.class,Arrays.asList("ID","ADMIN_ID","APPLICATION_ID", "END_POINT_ID"));
         addToIncludedModelFieldsMap(map,WhiteListIp.class,Arrays.asList("ID","APPLICATION_ID"));
-        addToIncludedModelFieldsMap(map, SubmittedDocument.class,Arrays.asList("ID","DOCUMENTED_MODEL_ID", "DOCUMENTED_MODEL_NAME"));
+
+        addToIncludedModelFieldsMap(map, SubmittedDocument.class,Arrays.asList("ID","DOCUMENTED_MODEL_ID", "DOCUMENTED_MODEL_NAME","FILE","COMPANY_ID","USER_ID"));
         addToIncludedModelFieldsMap(map,OpenApi.class,Collections.singletonList("ID"));
-        addToIncludedModelFieldsMap(map,Country.class,Collections.singletonList("ID"));
+        addToIncludedModelFieldsMap(map,Country.class,Collections.singletonList("   ID"));
         addToIncludedModelFieldsMap(map,State.class,Collections.singletonList("ID"));
         addToIncludedModelFieldsMap(map,City.class,Collections.singletonList("ID"));
-        addToIncludedModelFieldsMap(map,Company.class,Collections.singletonList("ID"));
+        addToIncludedModelFieldsMap(map, PinCode.class,Arrays.asList("ID","STATE_ID","CITY_ID"));
+
+        addToIncludedModelFieldsMap(map,Company.class,Arrays.asList("ID","LOGO"));
         addToIncludedModelFieldsMap(map, Document.class,Collections.singletonList("ID"));
         addToIncludedModelFieldsMap(map, CompanyNetworkDomain.class,Arrays.asList("ID","COMPANY_ID"));
         addToIncludedModelFieldsMap(map, NetworkDomain.class,Collections.singletonList("ID"));
         addToIncludedModelFieldsMap(map, CompanyNetworkUsage.class,Arrays.asList("ID","COMPANY_ID"));
         addToIncludedModelFieldsMap(map, NetworkUsage.class,Collections.singletonList("ID"));
+        addToIncludedModelFieldsMap(map, KycGroup.class,Collections.singletonList("ID"));
+
 
 
 
@@ -208,15 +243,17 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
     @Override
     protected Map<Class<? extends Model>, List<Class<? extends Model>>> getConsideredChildModels() {
         Map<Class<? extends Model>, List<Class<? extends Model>>> m = super.getConsideredChildModels();
-        //removeChildModelClasses(m,User.class,Application.class);
-        removeChildModelClasses(m,User.class,Company.class);
         removeChildModelClasses(m,Company.class,User.class);
         removeChildModelClasses(m,Company.class,UserEmail.class);
+        removeChildModelClasses(m,Application.class, EventHandler.class);
 
-        removeChildModelClasses(m,User.class, SubmittedDocument.class);
-        //m.get(User.class).add(UserDocument.class);
-        m.get(Company.class).add(Application.class);
-        m.get(Application.class).addAll(Arrays.asList(ApplicationPublicKey.class, EventHandler.class,WhiteListIp.class, EndPoint.class));
+
+
+        m.get(User.class).add(SubmittedDocument.class);
+        m.get(Company.class).add(SubmittedDocument.class);
+        //m.get(Application.class).addAll(Arrays.asList(ApplicationPublicKey.class, WhiteListIp.class, EndPoint.class));
+        //m.get(EndPoint.class).add(EventHandler.class);
+
         return m;
     }
 

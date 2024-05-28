@@ -6,8 +6,10 @@ import com.venky.swf.db.Database;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.db.model.application.Event;
 import com.venky.swf.db.model.application.api.EndPoint;
+import com.venky.swf.db.model.application.api.OpenApi;
 import com.venky.swf.plugins.collab.db.model.config.Role;
 import com.venky.swf.routing.Config;
+import com.venky.swf.sql.Select;
 import in.succinct.beckn.Request;
 import in.succinct.id.db.model.DefaultUserRoles;
 import in.succinct.id.db.model.onboarding.company.Application;
@@ -20,16 +22,30 @@ import in.succinct.plugins.kyc.db.model.submissions.Document;
 import java.security.KeyPair;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.util.Locale;
 
 public class AppInstaller implements Installer {
 
     public void install() {
         Database.getInstance().resetIdGeneration();
+        installOpenApis();
         installRoles();
         installDocumentTypes();
         installEvents();
         generateBecknKeys();
     }
+
+    private void installOpenApis() {
+        if (Database.getTable(OpenApi.class).recordCount() == 0){
+            for (String api : new String[]{"LREG","BG","BPP","BAP"}){
+                OpenApi openApi = Database.getTable(OpenApi.class).newRecord();
+                openApi.setName(api);
+                openApi.setSpecificationLocation("/openApis/"+api.toLowerCase() + "-0.9.4.yaml");
+                openApi.save();
+            }
+        }
+    }
+
     private void generateBecknKeys() {
         String keyId = String.format("%s.%s",Config.instance().getHostName(),"k1");
 
@@ -90,6 +106,7 @@ public class AppInstaller implements Installer {
         EndPoint endPoint = Database.getTable(EndPoint.class).newRecord();
         endPoint.setApplicationId(application.getId());
         endPoint.setBaseUrl(Config.instance().getServerBaseUrl() + "/subscribers");
+        endPoint.setOpenApiId(OpenApi.find("LREG").getId());
         endPoint = Database.getTable(EndPoint.class).getRefreshed(endPoint);
         if (endPoint.getRawRecord().isNewRecord()){
             endPoint.save();
@@ -121,11 +138,13 @@ public class AppInstaller implements Installer {
     }
 
     public void installDocumentTypes(){
+        if (!new Select().from(Document.class).execute(1).isEmpty()){
+            return;
+        }
         for (String defaultDocumentType : User.DEFAULT_DOCUMENTS) {
             Document documentType = Database.getTable(Document.class).newRecord();
             documentType.setDocumentName(defaultDocumentType);
             documentType.setDocumentedModelName(User.class.getSimpleName());
-            documentType.setRequiredForKyc(true);
             documentType = Database.getTable(Document.class).getRefreshed(documentType);
             documentType.save();
         }
@@ -133,7 +152,6 @@ public class AppInstaller implements Installer {
             Document documentType = Database.getTable(Document.class).newRecord();
             documentType.setDocumentName(defaultDocumentType);
             documentType.setDocumentedModelName(Company.class.getSimpleName());
-            documentType.setRequiredForKyc(true);
             documentType = Database.getTable(Document.class).getRefreshed(documentType);
             documentType.save();
         }

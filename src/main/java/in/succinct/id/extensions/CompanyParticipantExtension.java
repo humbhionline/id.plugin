@@ -20,7 +20,7 @@ public class CompanyParticipantExtension extends ParticipantExtension<Company> {
         registerExtension(new CompanyParticipantExtension());
     }
     @Override
-    protected List<Long> getAllowedFieldValues(com.venky.swf.db.model.User user, Company partial , String fieldName) {
+    public List<Long> getAllowedFieldValues(com.venky.swf.db.model.User user, Company partial , String fieldName) {
         if (ObjectUtil.equals(fieldName,"SELF_COMPANY_ID")){
             SequenceSet<Long> ret = new SequenceSet<Long>();
             Select select = new Select().from(ClaimRequest.class);

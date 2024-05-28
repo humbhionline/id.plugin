@@ -35,4 +35,8 @@ public interface Grant extends Model {
     public long getAccessTokenExpiry();
     public void setAccessTokenExpiry(long accessTokenExpiry);
 
+
+    @IS_VIRTUAL
+    public String getIdToken();
+
 }
