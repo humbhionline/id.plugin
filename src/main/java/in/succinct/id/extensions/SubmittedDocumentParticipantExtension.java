@@ -15,17 +15,15 @@ public class SubmittedDocumentParticipantExtension extends ParticipantExtension<
     }
     @Override
     public List<Long> getAllowedFieldValues(User user, SubmittedDocument partiallyFilledModel, String fieldName) {
-        if (ObjectUtil.equals(fieldName,"DOCUMENT_MODEL_ID")){
-            in.succinct.id.db.model.onboarding.user.User u = user.getRawRecord().getAsProxy(in.succinct.id.db.model.onboarding.user.User.class);
-            if (ObjectUtil.equals(partiallyFilledModel.getDocumentedModelName(),User.class.getSimpleName())){
-                if (u.isStaff()) {
-                    return  null;
-                }else {
-                    return Collections.singletonList(u.getId());
-                }
-            }else if (ObjectUtil.equals(partiallyFilledModel.getDocumentedModelName(), Company.class.getSimpleName())){
-                return u.getCompanyIds();
+        in.succinct.id.db.model.onboarding.user.User u = user.getRawRecord().getAsProxy(in.succinct.id.db.model.onboarding.user.User.class);
+        if (ObjectUtil.equals(fieldName,"USER_ID")) {
+            if (u.isStaff()) {
+                return null;
+            } else {
+                return Collections.singletonList(u.getId());
             }
+        }else if (ObjectUtil.equals(fieldName,"COMPANY_ID")){
+            return u.getCompanyIds();
         }
         return null;
     }

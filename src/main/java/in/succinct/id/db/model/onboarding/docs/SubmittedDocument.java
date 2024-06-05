@@ -11,12 +11,12 @@ public interface SubmittedDocument extends in.succinct.plugins.kyc.db.model.subm
     @PARTICIPANT
     public Long getDocumentedModelId();
 
-    @IS_VIRTUAL
+    @PARTICIPANT("COMPANY")
     public Long getCompanyId();
     public void setCompanyId(Long id);
     public Company getCompany();
 
-    @IS_VIRTUAL
+    @PARTICIPANT("USER")
     public Long getUserId();
     public void setUserId(Long id);
     public User getUser();

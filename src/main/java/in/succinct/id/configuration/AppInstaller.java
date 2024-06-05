@@ -1,6 +1,7 @@
 package in.succinct.id.configuration;
 
 import com.venky.core.security.Crypt;
+import com.venky.core.util.ObjectUtil;
 import com.venky.swf.configuration.Installer;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.CryptoKey;
@@ -8,7 +9,11 @@ import com.venky.swf.db.model.application.Event;
 import com.venky.swf.db.model.application.api.EndPoint;
 import com.venky.swf.db.model.application.api.OpenApi;
 import com.venky.swf.plugins.collab.db.model.config.Role;
+import com.venky.swf.plugins.collab.db.model.participants.admin.Facility;
 import com.venky.swf.routing.Config;
+import com.venky.swf.sql.Conjunction;
+import com.venky.swf.sql.Expression;
+import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 import in.succinct.beckn.Request;
 import in.succinct.id.db.model.DefaultUserRoles;
@@ -18,11 +23,14 @@ import in.succinct.id.db.model.onboarding.company.Company;
 import in.succinct.id.db.model.onboarding.user.User;
 import in.succinct.id.util.CompanyUtil;
 import in.succinct.plugins.kyc.db.model.submissions.Document;
+import in.succinct.plugins.kyc.db.model.submissions.SubmittedDocument;
 
 import java.security.KeyPair;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 public class AppInstaller implements Installer {
 
@@ -33,6 +41,40 @@ public class AppInstaller implements Installer {
         installDocumentTypes();
         installEvents();
         generateBecknKeys();
+        migrateSubmittedDocuments();
+        generateSubscriberIds();
+        fixFacilityGeographies();
+    }
+    private void fixFacilityGeographies(){
+        Select select = new Select().from(Facility.class);
+        List<Facility> facilities = select.where(new Expression(select.getPool(),"CITY_ID", Operator.EQ)).execute();
+        facilities.forEach(facility -> {
+            facility.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
+            facility.save(); //Let before validate default fill the defaults.
+        });
+
+    }
+    private void generateSubscriberIds(){
+        Select select = new Select().from(Company.class);
+        List<Company> companies = select.where(new Expression(select.getPool(),"SUBSCRIBER_ID", Operator.EQ)).execute();
+        companies.forEach(c->{
+            c.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
+            c.save(); //Let before validate default fill the defaults.
+        });
+
+    }
+    private void migrateSubmittedDocuments(){
+
+        Select select = new Select().from(SubmittedDocument.class);
+        select.where(new Expression(select.getPool(), Conjunction.AND).
+                add(new Expression(select.getPool(),"USER_ID", Operator.EQ)).
+                add(new Expression(select.getPool(), "COMPANY_ID",Operator.EQ)));
+        List<SubmittedDocument> documentList = select.execute();
+        documentList.forEach(document->{
+            document.setRemarks("Migrate User / Company");
+            document.save();
+        });
+
     }
 
     private void installOpenApis() {

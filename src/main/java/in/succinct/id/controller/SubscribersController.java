@@ -1,9 +1,12 @@
 package in.succinct.id.controller;
 
 import com.venky.cache.UnboundedCache;
+import com.venky.core.collections.SequenceSet;
 import com.venky.core.date.DateUtils;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.ObjectUtil;
+import com.venky.geo.GeoCoordinate;
+import com.venky.parse.composite.Sequence;
 import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
@@ -14,6 +17,7 @@ import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.db.model.config.City;
 import com.venky.swf.plugins.collab.db.model.config.Country;
 import com.venky.swf.plugins.collab.db.model.participants.EndPoint;
+import com.venky.swf.plugins.collab.db.model.participants.admin.Facility;
 import com.venky.swf.plugins.lucene.index.LuceneIndexer;
 import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Conjunction;
@@ -22,6 +26,7 @@ import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.View;
+import in.succinct.beckn.Location;
 import in.succinct.beckn.Organization;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Subscriber;
@@ -40,8 +45,10 @@ import org.json.simple.JSONObject;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
@@ -303,6 +310,9 @@ public class SubscribersController extends Controller {
             }
         }
         Subscribers records = lookup(subscriber,0,s->{
+            if (s.getSigningPublicKey() == null && s.getEncrPublicKey() == null) {
+                return;
+            }
             if (!ObjectUtil.isVoid(format)){
                 s.setSigningPublicKey(Request.getPemSigningKey(s.getSigningPublicKey()));
                 s.setEncrPublicKey(Request.getPemEncryptionKey(s.getEncrPublicKey()));
@@ -368,7 +378,10 @@ public class SubscribersController extends Controller {
         }
 
 
+
         ModelReflector<Application> ref = ModelReflector.instance(Application.class);
+
+
 
         StringBuilder searchQry = new StringBuilder();
         Expression where = new Expression(ref.getPool(), Conjunction.AND);
@@ -436,15 +449,87 @@ public class SubscribersController extends Controller {
             }
         }
 
+        Subscribers defaultSubscribers = getDefaultSubscribers(criteria);
+        for (Subscriber subscriber : defaultSubscribers){
+            subscribers.add(subscriber);
+        }
 
         return subscribers;
     }
+
+    /**
+     *
+     * This is to add subscriber that are not applications but have been added as individuals with out applications.
+     * @param criteria
+     * @return
+     */
+    private static Subscribers getDefaultSubscribers(Subscriber criteria) {
+        Subscribers subscribers = new Subscribers();
+        if (ObjectUtil.isVoid(criteria.getSubscriberId())){
+            return subscribers;
+        }
+        Company input = Database.getTable(Company.class).newRecord();
+        input.setSubscriberId(criteria.getSubscriberId());
+        Company company = Database.getTable(Company.class).getRefreshed(input);
+        if (company.getRawRecord().isNewRecord()){
+            return subscribers;
+        }
+        if (Config.instance().getBooleanProperty("beckn.require.kyc",false)){
+            if (!company.isKycComplete()){
+                return subscribers;
+            }
+        }
+
+
+        subscribers.add(new Subscriber(){{
+            setSubscriberId(company.getSubscriberId());
+            setStatus(Subscriber.SUBSCRIBER_STATUS_SUBSCRIBED);
+            setType("BPP");
+            SequenceSet<String> cities = new SequenceSet<>();
+            SequenceSet<String> countries = new SequenceSet<>();
+            SequenceSet<String> gps = new SequenceSet<>();
+
+            company.getFacilities().forEach(f-> {
+                if (f.getCityId() != null) {
+                    cities.add(f.getCity().getCode());
+                }
+                if (f.getCountryId() != null){
+                    countries.add(f.getCountry().getIsoCode());
+                }
+                if (f.getLat() != null && f.getLng() != null){
+                    gps.add(String.format("%f,%f",f.getLat(),f.getLng()));
+                }
+            });
+            setLocation(new Location(){{
+                if (cities.size() == 1) {
+                    setCity(new in.succinct.beckn.City(){{
+                        setCode(cities.get(0));
+                    }});
+                }
+                if (countries.size() == 1){
+                    setCountry(new in.succinct.beckn.Country(){{
+                        setCode(countries.get(0));
+                    }});
+                }
+                if (gps.size() == 1){
+                    set("gps",gps.get(0));
+                }
+            }});
+            setCity(getLocation().getCity().getCode());
+            setCountry(getLocation().getCountry().getCode());
+            setCreated(company.getCreatedAt());
+        }});
+
+        return subscribers;
+    }
+
     public interface KeyFormatFixer {
         void fix(Subscriber subscriber);
     }
     static Subscribers getSubscribers(Subscriber criteria ,ApplicationPublicKey criteriaKey , Application networkRole,  KeyFormatFixer fixer) {
+        Company company = networkRole.getCompany().getRawRecord().getAsProxy(Company.class);
         if (Config.instance().getBooleanProperty("beckn.require.kyc",false)){
-            if (!networkRole.getCompany().getRawRecord().getAsProxy(Company.class).isKycComplete()){
+            if (!company.isKycComplete()){
                 return new Subscribers();
             }
         }
@@ -461,7 +546,20 @@ public class SubscribersController extends Controller {
             keys.sort((k1, k2) -> (int) DateUtils.compareToMillis(k2.getValidFrom(), k1.getValidFrom()));
         }
         if (keys.isEmpty()){
-            return new Subscribers();
+            return new Subscribers(){{
+                if (ObjectUtil.equals(networkRole.getAppId(),company.getSubscriberId())) {
+                    add(new Subscriber() {{
+                        setSubscriberId(networkRole.getAppId());
+                        List<Facility> facilities = company.getFacilities();
+                        if (facilities.size() == 1) {
+                            setCity(facilities.get(0).getCity().getCode());
+                            setCountry(facilities.get(0).getCountry().getIsoCode());
+                        }
+                        setType(Subscriber.SUBSCRIBER_TYPE_BPP); //HardCoded
+                        setStatus(Subscriber.SUBSCRIBER_STATUS_SUBSCRIBED);
+                    }});
+                }
+            }};
         }
         Subscribers subscribers = getSubscribers(criteria,networkRole, keys);
         for (Subscriber subscriber : subscribers){

@@ -21,6 +21,8 @@ import com.venky.swf.plugins.collab.db.model.participants.ApplicationPublicKey;
 import com.venky.swf.plugins.collab.db.model.participants.EndPoint;
 import com.venky.swf.plugins.collab.db.model.participants.EventHandler;
 import com.venky.swf.plugins.collab.db.model.participants.WhiteListIp;
+import com.venky.swf.plugins.collab.db.model.participants.admin.Facility;
+import com.venky.swf.plugins.collab.db.model.participants.admin.FacilityCategory;
 import com.venky.swf.plugins.collab.db.model.user.UserEmail;
 import com.venky.swf.plugins.collab.db.model.user.UserPhone;
 import com.venky.swf.routing.Config;
@@ -182,23 +184,29 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
     }
     public List<String> getExistingModelFields(Map<Class<? extends Model>,List<String>> map , Class<? extends Model> modelClass){
         List<String> existing = new SequenceSet<>();
-        ModelReflector.instance(modelClass).getModelClasses().forEach(mc->{
-            List<String> e = map.get(mc);
-            if (e != null) {
-                existing.addAll(e);
-            }
-        });
+        if (map != null) {
+            ModelReflector.instance(modelClass).getModelClasses().forEach(mc -> {
+                List<String> e = map.get(mc);
+                if (e != null) {
+                    existing.addAll(e);
+                }
+            });
+        }
         return existing;
     }
     private void addToIncludedModelFieldsMap(Map<Class<? extends Model>,List<String>> map, Class<? extends Model> clazz , List<String> excludedFields){
         List<String> fields = ModelReflector.instance(clazz).getVisibleFields(Collections.emptyList());
         List<String> oldFields = getExistingModelFields(map,clazz);
 
+        Map<Class<? extends Model>,List<String>> requestedFieldsMap  = getIncludedModelFieldsFromRequest();
+        List<String> requestedFields = getExistingModelFields(requestedFieldsMap,clazz);
+
+
         SequenceSet<String> finalFields = new SequenceSet<>();
         finalFields.addAll(fields);
-//        excludedFields.forEach(finalFields::remove); moved it below oldFields
         finalFields.addAll(oldFields);
         excludedFields.forEach(finalFields::remove);
+        finalFields.addAll(requestedFields);// Ensure Requested is always added
         map.put(clazz,finalFields);
     }
     @Override
@@ -225,6 +233,8 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         addToIncludedModelFieldsMap(map,State.class,Collections.singletonList("ID"));
         addToIncludedModelFieldsMap(map,City.class,Collections.singletonList("ID"));
         addToIncludedModelFieldsMap(map, PinCode.class,Arrays.asList("ID","STATE_ID","CITY_ID"));
+        addToIncludedModelFieldsMap(map, Facility.class,Arrays.asList("ID","COMPANY_ID"));
+
 
         addToIncludedModelFieldsMap(map,Company.class,Arrays.asList("ID","LOGO"));
         addToIncludedModelFieldsMap(map, Document.class,Collections.singletonList("ID"));
@@ -250,7 +260,8 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
 
 
         m.get(User.class).add(SubmittedDocument.class);
-        m.get(Company.class).add(SubmittedDocument.class);
+        m.get(Company.class).addAll(Arrays.asList(SubmittedDocument.class, Facility.class));
+        m.get(Facility.class).add(FacilityCategory.class);
         //m.get(Application.class).addAll(Arrays.asList(ApplicationPublicKey.class, WhiteListIp.class, EndPoint.class));
         //m.get(EndPoint.class).add(EventHandler.class);
 
