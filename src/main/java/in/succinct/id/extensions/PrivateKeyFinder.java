@@ -6,7 +6,7 @@ import com.venky.extension.Registry;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.db.model.application.ApplicationUtil;
 import com.venky.swf.routing.Config;
-import in.succinct.id.db.model.onboarding.company.Application;
+import in.succinct.id.core.db.model.onboarding.company.Application;
 import in.succinct.id.db.model.onboarding.company.ApplicationPublicKey;
 
 import java.util.Optional;

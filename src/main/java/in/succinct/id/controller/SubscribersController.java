@@ -5,8 +5,6 @@ import com.venky.core.collections.SequenceSet;
 import com.venky.core.date.DateUtils;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.ObjectUtil;
-import com.venky.geo.GeoCoordinate;
-import com.venky.parse.composite.Sequence;
 import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
@@ -31,11 +29,11 @@ import in.succinct.beckn.Organization;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Subscriber;
 import in.succinct.beckn.Subscribers;
-import in.succinct.id.db.model.onboarding.company.Application;
-import in.succinct.id.db.model.onboarding.company.ApplicationContext;
+import in.succinct.id.core.db.model.onboarding.company.Application;
+import com.venky.swf.plugins.collab.db.model.participants.ApplicationContext;
 import in.succinct.id.db.model.onboarding.company.ApplicationPublicKey;
-import in.succinct.id.db.model.onboarding.company.Company;
-import in.succinct.id.util.CompanyUtil;
+import in.succinct.id.core.db.model.onboarding.company.Company;
+import com.venky.swf.plugins.collab.util.CompanyUtil;
 import in.succinct.json.JSONAwareWrapper;
 import org.apache.lucene.search.Query;
 import org.json.simple.JSONArray;
@@ -45,10 +43,8 @@ import org.json.simple.JSONObject;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
@@ -76,7 +72,7 @@ public class SubscribersController extends Controller {
 
 
         for (Subscriber subscriber :subscribers){
-            Company networkParticipant = CompanyUtil.getCompany(subscriber.getSubscriberId());
+            Company networkParticipant = CompanyUtil.getCompany(subscriber.getSubscriberId()).getRawRecord().getAsProxy(Company.class);
 
             if (subscriber.getOrganization() == null){
                 subscriber.setOrganization(new Organization());

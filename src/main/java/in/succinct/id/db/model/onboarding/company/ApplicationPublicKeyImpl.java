@@ -3,7 +3,6 @@ package in.succinct.id.db.model.onboarding.company;
 import com.venky.core.io.ByteArrayInputStream;
 import com.venky.core.random.Randomizer;
 import com.venky.core.security.Crypt;
-import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.db.model.application.Event;
@@ -13,6 +12,7 @@ import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.routing.Config;
 import in.succinct.beckn.Request;
+import in.succinct.id.core.db.model.onboarding.company.Application;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 

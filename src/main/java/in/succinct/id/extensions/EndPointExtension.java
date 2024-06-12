@@ -1,6 +1,5 @@
 package in.succinct.id.extensions;
 
-import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.extensions.ModelOperationExtension;

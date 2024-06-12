@@ -1,58 +1,35 @@
 package in.succinct.id.configuration;
 
 import com.venky.core.security.Crypt;
-import com.venky.core.util.ObjectUtil;
 import com.venky.swf.configuration.Installer;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.db.model.application.Event;
 import com.venky.swf.db.model.application.api.EndPoint;
 import com.venky.swf.db.model.application.api.OpenApi;
-import com.venky.swf.plugins.collab.db.model.config.Role;
-import com.venky.swf.plugins.collab.db.model.participants.admin.Facility;
 import com.venky.swf.routing.Config;
-import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 import in.succinct.beckn.Request;
-import in.succinct.id.db.model.DefaultUserRoles;
-import in.succinct.id.db.model.onboarding.company.Application;
+import in.succinct.id.core.db.model.onboarding.company.Application;
 import in.succinct.id.db.model.onboarding.company.ApplicationPublicKey;
-import in.succinct.id.db.model.onboarding.company.Company;
-import in.succinct.id.db.model.onboarding.user.User;
-import in.succinct.id.util.CompanyUtil;
-import in.succinct.plugins.kyc.db.model.submissions.Document;
-import in.succinct.plugins.kyc.db.model.submissions.SubmittedDocument;
+import in.succinct.id.core.db.model.onboarding.company.Company;
+import com.venky.swf.plugins.collab.util.CompanyUtil;
 
 import java.security.KeyPair;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
 
 public class AppInstaller implements Installer {
 
     public void install() {
         Database.getInstance().resetIdGeneration();
-        installOpenApis();
-        installRoles();
-        installDocumentTypes();
-        installEvents();
         generateBecknKeys();
-        migrateSubmittedDocuments();
+        installEvents();
+        installOpenApis();
         generateSubscriberIds();
-        fixFacilityGeographies();
-    }
-    private void fixFacilityGeographies(){
-        Select select = new Select().from(Facility.class);
-        List<Facility> facilities = select.where(new Expression(select.getPool(),"CITY_ID", Operator.EQ)).execute();
-        facilities.forEach(facility -> {
-            facility.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
-            facility.save(); //Let before validate default fill the defaults.
-        });
-
     }
     private void generateSubscriberIds(){
         Select select = new Select().from(Company.class);
@@ -63,31 +40,6 @@ public class AppInstaller implements Installer {
         });
 
     }
-    private void migrateSubmittedDocuments(){
-
-        Select select = new Select().from(SubmittedDocument.class);
-        select.where(new Expression(select.getPool(), Conjunction.AND).
-                add(new Expression(select.getPool(),"USER_ID", Operator.EQ)).
-                add(new Expression(select.getPool(), "COMPANY_ID",Operator.EQ)));
-        List<SubmittedDocument> documentList = select.execute();
-        documentList.forEach(document->{
-            document.setRemarks("Migrate User / Company");
-            document.save();
-        });
-
-    }
-
-    private void installOpenApis() {
-        if (Database.getTable(OpenApi.class).recordCount() == 0){
-            for (String api : new String[]{"LREG","BG","BPP","BAP"}){
-                OpenApi openApi = Database.getTable(OpenApi.class).newRecord();
-                openApi.setName(api);
-                openApi.setSpecificationLocation("/openApis/"+api.toLowerCase() + "-0.9.4.yaml");
-                openApi.save();
-            }
-        }
-    }
-
     private void generateBecknKeys() {
         String keyId = String.format("%s.%s",Config.instance().getHostName(),"k1");
 
@@ -109,7 +61,7 @@ public class AppInstaller implements Installer {
             encryptionKey.save();
         }
 
-        Company company = CompanyUtil.getCompany();
+        Company company = CompanyUtil.getCompany().getRawRecord().getAsProxy(Company.class);
         if (company.getRawRecord().isNewRecord()){
             company.setTxnProperty("kyc.complete",true);
             company.setKycComplete(true);
@@ -155,50 +107,26 @@ public class AppInstaller implements Installer {
         }
 
     }
-    public void installEvents(){
-        for (String name : new String[]{"end_point_verification"}){
+
+    public void installEvents() {
+        for (String name : new String[]{"end_point_verification"}) {
             Event event = Database.getTable(Event.class).newRecord();
             event.setName(name);
             event = Database.getTable(Event.class).getRefreshed(event);
             event.save();
         }
     }
-    public void installRoles(){
-        if (Database.getTable(Role.class).isEmpty()) {
-            for (String allowedRole : DefaultUserRoles.ALLOWED_ROLES) {
-                Role role = Database.getTable(Role.class).newRecord();
-                role.setName(allowedRole);
-                role.save();
+    private void installOpenApis() {
+        if (Database.getTable(OpenApi.class).recordCount() == 0) {
+            for (String api : new String[]{"LREG", "BG", "BPP", "BAP"}) {
+                OpenApi openApi = Database.getTable(OpenApi.class).newRecord();
+                openApi.setName(api);
+                openApi.setSpecificationLocation("/openApis/" + api.toLowerCase() + "-0.9.4.yaml");
+                openApi.save();
             }
         }
-        Role admin = com.venky.swf.plugins.security.db.model.Role.getRole(Role.class,"ADMIN");
-        assert admin != null;
-        if (!admin.isStaff()){
-            admin.setStaff(true);
-            admin.save();
-        }
     }
 
-    public void installDocumentTypes(){
-        if (!new Select().from(Document.class).execute(1).isEmpty()){
-            return;
-        }
-        for (String defaultDocumentType : User.DEFAULT_DOCUMENTS) {
-            Document documentType = Database.getTable(Document.class).newRecord();
-            documentType.setDocumentName(defaultDocumentType);
-            documentType.setDocumentedModelName(User.class.getSimpleName());
-            documentType = Database.getTable(Document.class).getRefreshed(documentType);
-            documentType.save();
-        }
-        for (String defaultDocumentType : Company.DEFAULT_DOCUMENTS) {
-            Document documentType = Database.getTable(Document.class).newRecord();
-            documentType.setDocumentName(defaultDocumentType);
-            documentType.setDocumentedModelName(Company.class.getSimpleName());
-            documentType = Database.getTable(Document.class).getRefreshed(documentType);
-            documentType.save();
-        }
 
-
-    }
 }
 
