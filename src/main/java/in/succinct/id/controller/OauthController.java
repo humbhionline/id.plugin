@@ -137,7 +137,7 @@ public class OauthController extends Controller {
         IntegrationAdaptor<Grant,JSONObject> integrationAdaptor = IntegrationAdaptor.instance(Grant.class,JSONObject.class);
         JSONObject out = new JSONObject();
         ModelIOFactory.getWriter(Grant.class, JSONObject.class).write(grant,out,grant.getReflector().getVisibleFields(new ArrayList<>()));
-        FormatHelper.instance(out).change_key_case(KeyCase.SNAKE);
+        FormatHelper.instance(out).change_key_case(KeyCase.CAMEL,KeyCase.SNAKE);
 
         View view = new BytesView(getPath(),out.toString().getBytes(StandardCharsets.UTF_8), MimeType.APPLICATION_JSON,"Cache-Control","no-store");
         return view;

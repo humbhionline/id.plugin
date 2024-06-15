@@ -26,9 +26,9 @@ public class AppInstaller implements Installer {
 
     public void install() {
         Database.getInstance().resetIdGeneration();
-        generateBecknKeys();
         installEvents();
         installOpenApis();
+        generateBecknKeys();
         generateSubscriberIds();
     }
     private void generateSubscriberIds(){
