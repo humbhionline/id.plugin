@@ -12,6 +12,7 @@ import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.plugins.collab.db.model.config.City;
 import com.venky.swf.plugins.collab.db.model.config.Country;
 import com.venky.swf.plugins.collab.db.model.participants.ApplicationContext;
+import com.venky.swf.plugins.collab.db.model.participants.admin.Facility;
 import com.venky.swf.plugins.lucene.index.LuceneIndexer;
 import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Conjunction;
@@ -151,62 +152,116 @@ public class LookupManager {
      * @return List of subscribers matching Subscribers
      */
     private  Subscribers getDefaultSubscribers(Subscriber criteria) {
-        Subscribers subscribers = new Subscribers();
-        if (ObjectUtil.isVoid(criteria.getSubscriberId())){
-            return subscribers;
+        City city = null ;
+        Country country = null ;
+        if (!ObjectUtil.isVoid(criteria.getCity())) {
+            city = City.findByCode(criteria.getCity());
+            if (city == null){
+                return new Subscribers();
+            }
+            country = ( city.getStateId() == null) ? null : city.getState().getCountry();
         }
-        Company input = Database.getTable(Company.class).newRecord();
-        input.setSubscriberId(criteria.getSubscriberId());
-        Company company = Database.getTable(Company.class).getRefreshed(input);
-        if (company.getRawRecord().isNewRecord()){
-            return subscribers;
-        }
-        if (Config.instance().getBooleanProperty("beckn.require.kyc",false)){
-            if (!company.isKycComplete()){
-                return subscribers;
+        if (country == null && !ObjectUtil.isVoid(criteria.getCountry())) {
+            country = Country.findByISO(criteria.getCountry());
+            if (country == null){
+                return new Subscribers();
             }
         }
 
 
-        subscribers.add(new Subscriber(){{
-            setSubscriberId(company.getSubscriberId());
-            setStatus(Subscriber.SUBSCRIBER_STATUS_SUBSCRIBED);
-            setType(criteria.getType());
-            SequenceSet<String> cities = new SequenceSet<>();
-            SequenceSet<String> countries = new SequenceSet<>();
-            SequenceSet<String> gps = new SequenceSet<>();
+        Subscribers subscribers = new Subscribers();
+        List<Company> companies ;
+        if (!ObjectUtil.isVoid(criteria.getSubscriberId())) {
+            Company input = Database.getTable(Company.class).newRecord();
+            input.setSubscriberId(criteria.getSubscriberId());
+            Company company = Database.getTable(Company.class).getRefreshed(input);
+            companies = new ArrayList<>();
+            if (!company.getRawRecord().isNewRecord() && company.isKycComplete() && company.getApplications().isEmpty()) { // May be slow.
+                companies.add(company);
+            }
+        }else if (!ObjectUtil.equals(criteria.getType(),Subscriber.SUBSCRIBER_TYPE_BPP)){
+            return subscribers;
+        }else {
+            Select select = new Select().from(Company.class);
+            StringBuilder fragment = new StringBuilder();
+            Expression where = new Expression(select.getPool(),Conjunction.AND);
+            if (Config.instance().getBooleanProperty("beckn.require.kyc",false)){
+                where.add(new Expression(select.getPool(),"KYC_COMPLETE",Operator.EQ, true));
+            }else {
+                fragment.append(" where 1 = 1 ");
+            }
+            fragment.append(" and not exists (select 1 from applications where company_id = companies.id)");
 
-            company.getFacilities().forEach(f-> {
-                if (f.getCityId() != null) {
-                    cities.add(f.getCity().getCode());
+            fragment.append( " and exists (select 1 from facilities f where company_id = companies.id ");
+            if (city != null){
+                fragment.append( " and f.city_id = %d ".formatted(city.getId()));
+            }
+            if (country != null){
+                fragment.append( " and f.country_id = %d ".formatted(country.getId()));
+            }
+            fragment.append(")");
+
+            select.where(where).add(fragment.toString());
+            companies = select.execute();
+        }
+
+        for (Company company : companies) {
+            ModelReflector<Facility> ref = ModelReflector.instance(Facility.class);
+            Expression where = new Expression(ref.getPool(),Conjunction.AND);
+            where.add(new Expression(ref.getPool(),"COMPANY_ID",Operator.EQ,company.getId()));
+            where.add(new Expression(ref.getPool(),"CITY_ID",Operator.NE));
+            where.add(new Expression(ref.getPool(),"COUNTRY_ID",Operator.NE));
+            if (city != null){
+                where.add(new Expression(ref.getPool(),"CITY_ID",Operator.EQ,city.getId()));
+            }
+            if (country != null){
+                where.add(new Expression(ref.getPool(),"COUNTRY_ID",Operator.EQ,country.getId()));
+            }
+            List<Facility> facilities = new Select().from(Facility.class).where(where).execute();
+            List<String> cities = new SequenceSet<>();
+            List<String> countries = new SequenceSet<>();
+            List<String> gps = new SequenceSet<>();
+            for (Facility facility : facilities) {
+                if (city != null && ObjectUtil.equals(city.getId(),facility.getCityId())) {
+                    cities.add(city.getCode());
+                }else {
+                    cities.add(facility.getCity().getCode());
                 }
-                if (f.getCountryId() != null){
-                    countries.add(f.getCountry().getIsoCode());
+                if (country != null && ObjectUtil.equals(country.getId(),facility.getCountryId())) {
+                    countries.add(country.getCode());
+                }else {
+                    countries.add(facility.getCountry().getCode());
                 }
-                if (f.getLat() != null && f.getLng() != null){
-                    gps.add(String.format("%f,%f",f.getLat(),f.getLng()));
-                }
-            });
-            setLocation(new Location(){{
-                if (cities.size() == 1) {
-                    setCity(new in.succinct.beckn.City(){{
-                        setCode(cities.get(0));
-                    }});
-                }
-                if (countries.size() == 1){
-                    setCountry(new in.succinct.beckn.Country(){{
-                        setCode(countries.get(0));
-                    }});
-                }
-                if (gps.size() == 1){
-                    set("gps",gps.get(0));
-                }
+                gps.add("%f,%f".formatted(facility.getLat(),facility.getLng()));
+            }
+
+            subscribers.add(new Subscriber(){{
+                setSubscriberId(company.getSubscriberId());
+                setStatus(Subscriber.SUBSCRIBER_STATUS_SUBSCRIBED);
+                setType(criteria.getType());
+
+                setLocation(new Location(){{
+                    if (cities.size() == 1) {
+                        setCity(new in.succinct.beckn.City(){{
+                            setCode(cities.get(0));
+                        }});
+                    }
+                    if (!facilities.isEmpty()){
+                        setCountry(new in.succinct.beckn.Country(){{
+                            setCode(countries.get(0));
+                        }});
+                    }
+                    if (gps.size() == 1){
+                        set("gps",gps.get(0));
+                    }
+                }});
+                setCity(cities.size() != 1 ? null : cities.get(0));
+                setCountry(countries.size() != 1 ? null : countries.get(0));
+
+                setCreated(company.getCreatedAt());
             }});
-            setCity(getLocation().getCity().getCode());
-            setCountry(getLocation().getCountry().getCode());
-            setCreated(company.getCreatedAt());
-        }});
 
+        }
         return subscribers;
     }
 

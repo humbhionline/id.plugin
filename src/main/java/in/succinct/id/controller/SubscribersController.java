@@ -281,9 +281,11 @@ public class SubscribersController extends Controller {
         Subscriber subscriber = new Subscriber((JSONObject) Subscriber.parse(getPath().getInputStream()));
         if (ObjectUtil.isVoid(subscriber.getCity()) && subscriber.getLocation() != null && subscriber.getLocation().getCity() != null) {
             subscriber.setCity(subscriber.getLocation().getCity().getCode());
-            subscriber.setLocation(null);
         }
-
+        if (ObjectUtil.isVoid(subscriber.getCountry()) && subscriber.getLocation() != null && subscriber.getLocation().getCountry() != null) {
+            subscriber.setCountry(subscriber.getLocation().getCountry().getCode());
+        }
+        subscriber.setLocation(null);
         String format = getPath().getHeaders().get("pub_key_format");
         if (!ObjectUtil.isVoid(format)){
             if (!ObjectUtil.equals("PEM",format.toUpperCase())){
