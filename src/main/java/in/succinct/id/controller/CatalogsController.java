@@ -1,10 +1,8 @@
 package in.succinct.id.controller;
 
 import com.venky.cache.Cache;
-import com.venky.cache.UnboundedCache;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.MultiException;
-import com.venky.core.util.ObjectHolder;
 import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoCoordinate;
 import com.venky.swf.controller.VirtualModelController;
@@ -45,9 +43,10 @@ import in.succinct.beckn.Request;
 import in.succinct.beckn.Scalar;
 import in.succinct.beckn.Subscriber;
 import in.succinct.beckn.Subscribers;
-import in.succinct.id.controller.SubscribersController.KeyFormatFixer;
 import in.succinct.id.core.db.model.onboarding.company.Company;
 import in.succinct.id.db.model.Catalog;
+import in.succinct.id.util.KeyFormatFixer;
+import in.succinct.id.util.LookupManager;
 import in.succinct.onet.core.adaptor.NetworkAdaptor;
 import in.succinct.onet.core.adaptor.NetworkAdaptorFactory;
 import in.succinct.onet.core.api.BecknIdHelper;
@@ -69,7 +68,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 public class CatalogsController extends VirtualModelController<Catalog> {
 
@@ -214,50 +212,35 @@ public class CatalogsController extends VirtualModelController<Catalog> {
 
                 Request request = prepareCatalogSyncRequest(providers, subscriber,networkAdaptor);
                 request.setPayload(request.getInner().toString());
-                Subscribers subscribers = SubscribersController.lookup(new Subscriber() {{
+
+                Subscribers gateways = LookupManager.getInstance().lookup(new Subscriber() {{
+                    setSubscriberId(networkAdaptor.getSearchProviderId());
                     setType(Subscriber.SUBSCRIBER_TYPE_BG);
-                }}, 0, new KeyFormatFixer() {
+                }}, new KeyFormatFixer() {
                     @Override
                     public void fix(Subscriber subscriber) {
                         // do nothing.;;
                     }
-                });
+                }); //We need to send to only one bg, It will be propagated internally.
 
                 Application self = ApplicationUtil.find(Config.instance().getHostName());
-                List<ApplicationPublicKey> keys = self.getApplicationPublicKeys().stream().filter(k-> k.isVerified() && !k.isExpired()).collect(Collectors.toList());
-                Map<String,Map<String,ApplicationPublicKey>> map = new UnboundedCache<String, Map<String, ApplicationPublicKey>>() {
-                    @Override
-                    protected Map<String, ApplicationPublicKey> getValue(String key) {
-                        return new UnboundedCache<String, ApplicationPublicKey>() {
-                            @Override
-                            protected ApplicationPublicKey getValue(String key) {
-                                return null;
-                            }
-                        };
-                    }
-                };
-                ObjectHolder<String> keyIdToUse = new ObjectHolder<>(null);
-                for (ApplicationPublicKey key : keys) {
-                    Map<String,ApplicationPublicKey> purposeMap = map.get(key.getKeyId());
-                    purposeMap.put(key.getPurpose(),key);
-                    if (purposeMap.size() == 2){
-                        keyIdToUse.set(key.getKeyId());
-                        break;
-                    }
-                }
+                Map<String,ApplicationPublicKey> latestKeys = LookupManager.getInstance().getLatestKeys(self);
 
 
 
-
-                if (keyIdToUse.get() != null) {
+                if (latestKeys != null) {
                     Map<String,String> headers = new HashMap<>() {{
                         put("content-type", MimeType.APPLICATION_JSON.toString());
-                        put("Authorization", request.generateAuthorizationHeader(self.getAppId(), keyIdToUse.get()));
+                        put("Authorization", request.generateAuthorizationHeader(self.getAppId(), latestKeys.get(ApplicationPublicKey.PURPOSE_SIGNING).getKeyId()));
                     }};
-                    for (Subscriber gwSubscriber : subscribers) {
+                    for (Subscriber gwSubscriber : gateways) {//Only one subscriber is needed.
                         Call<InputStream> call  = new Call<InputStream>().url(gwSubscriber.getSubscriberUrl(), "on_search").headers(headers).inputFormat(InputFormat.INPUT_STREAM).method(HttpMethod.POST).input(new ByteArrayInputStream(request.toString().getBytes(StandardCharsets.UTF_8)));
-                        Config.instance().getLogger(getClass().getName()).log(Level.INFO,"BroadCasted on_search to bg " + gwSubscriber.getSubscriberId() + ":\n"
-                                                                                         + StringUtil.valueOf(call.getResponseStream()));
+                        if (!call.hasErrors()) {
+                            Config.instance().getLogger(getClass().getName()).log(Level.INFO, "BroadCasted on_search to bg " + gwSubscriber.getSubscriberId() + ":\n"
+                                                                                              + StringUtil.valueOf(call.getResponseStream()));
+                            break;
+                            // BG will propagate to all other bg/search providers.
+                        }
                     }
                 }
             } catch (IOException e) {
