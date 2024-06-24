@@ -6,6 +6,7 @@ import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
+import com.venky.swf.db.model.application.ApplicationUtil;
 import com.venky.swf.db.model.application.api.OpenApi;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.db.model.config.City;
@@ -22,8 +23,10 @@ import in.succinct.beckn.Subscribers;
 import in.succinct.id.core.db.model.onboarding.company.Application;
 import in.succinct.id.core.db.model.onboarding.company.Company;
 import in.succinct.id.db.model.onboarding.company.ApplicationPublicKey;
+import in.succinct.id.util.KeyFormatFixer;
 import in.succinct.id.util.LookupManager;
 import in.succinct.json.JSONAwareWrapper;
+import in.succinct.onet.core.adaptor.NetworkAdaptorFactory;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
@@ -311,5 +314,49 @@ public class SubscribersController extends Controller {
     }
 
 
+    @RequireLogin(false)
+    public <T> View disable() throws Exception {
 
+        String payload = StringUtil.read(getPath().getInputStream());
+        Request request = new Request(payload);
+        Map<String,String> params = request.extractAuthorizationParams("X-Gateway-Authorization",getPath().getHeaders());
+        if (params.isEmpty()){
+            throw new RuntimeException("Signature Verification failed");
+        }
+
+        String pub_key_id = params.get("pub_key_id");
+        String subscriber_id = params.get("subscriber_id");
+        ApplicationPublicKey signedWithKey = com.venky.swf.db.model.application.ApplicationPublicKey.find(com.venky.swf.db.model.application.ApplicationPublicKey.PURPOSE_SIGNING,pub_key_id,ApplicationPublicKey.class);
+        if (!signedWithKey.isVerified()){
+            throw new RuntimeException("Your signing key is not verified by the registrar! Please contact registrar or sign with a verified key.");
+        }
+        if (!request.verifySignature("X-Gateway-Authorization",getPath().getHeaders(),true)){
+            throw new RuntimeException("Signature Verification failed");
+        }
+        Application application = ApplicationUtil.find(subscriber_id,Application.class);
+
+        if (application == null){
+            throw new RuntimeException("Invalid Subscriber : " + subscriber_id) ;
+        }
+
+
+        if (!ObjectUtil.equals(application.getId() ,signedWithKey.getApplicationId())){
+            throw new RuntimeException("Key signed with is not registered against you. Please contact registrar");
+        }
+
+
+        Subscribers subscribers = new Subscribers(payload);
+        for (Subscriber subscriber :subscribers) {
+            Application disabledApplication =  ApplicationUtil.find(subscriber.getSubscriberId(),Application.class);
+            if (disabledApplication == null){
+                continue;
+            }
+            Map<String, com.venky.swf.db.model.application.ApplicationPublicKey> keys = LookupManager.getInstance().getLatestKeys(disabledApplication);
+            ApplicationPublicKey key = keys.get(ApplicationPublicKey.PURPOSE_SIGNING).getRawRecord().getAsProxy(ApplicationPublicKey.class);
+            key.setVerified(false);
+            key.save();
+            // when App calls signed /subscribe again, it would get verified.
+        }
+        return new BytesView(getPath(),subscribers.getInner().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+    }
 }

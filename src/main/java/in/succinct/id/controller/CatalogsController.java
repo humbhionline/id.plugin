@@ -255,11 +255,11 @@ public class CatalogsController extends VirtualModelController<Catalog> {
         }
     }
     public Request prepareCatalogSyncRequest(Providers providers,  Subscriber subscriber, NetworkAdaptor networkAdaptor){
-        Request request = new Request();
-        Context context = new Context();
+        Request request = networkAdaptor.getObjectCreator(subscriber.getDomain()).create(Request.class);
+        Context context = request.getObjectCreator().create(Context.class);
         request.setContext(context);
-        request.setMessage(new Message());
-        request.getMessage().setCatalog(new in.succinct.beckn.Catalog());
+        request.setMessage(context.getObjectCreator().create(Message.class));
+        request.getMessage().setCatalog(request.getObjectCreator().create(in.succinct.beckn.Catalog.class));
         request.getMessage().getCatalog().setProviders(providers);
         context.setBppId(subscriber.getSubscriberId());
         context.setBppUri(subscriber.getSubscriberUrl());
@@ -282,6 +282,7 @@ public class CatalogsController extends VirtualModelController<Catalog> {
                 provider.setTag("general_attributes","catalog.indexer.operation",getPath().action());
             }
         }
+
         return request;
 
     }
