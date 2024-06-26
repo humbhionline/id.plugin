@@ -23,10 +23,8 @@ import in.succinct.beckn.Subscribers;
 import in.succinct.id.core.db.model.onboarding.company.Application;
 import in.succinct.id.core.db.model.onboarding.company.Company;
 import in.succinct.id.db.model.onboarding.company.ApplicationPublicKey;
-import in.succinct.id.util.KeyFormatFixer;
 import in.succinct.id.util.LookupManager;
 import in.succinct.json.JSONAwareWrapper;
-import in.succinct.onet.core.adaptor.NetworkAdaptorFactory;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
@@ -351,7 +349,7 @@ public class SubscribersController extends Controller {
             if (disabledApplication == null){
                 continue;
             }
-            Map<String, com.venky.swf.db.model.application.ApplicationPublicKey> keys = LookupManager.getInstance().getLatestKeys(disabledApplication);
+            Map<String, ApplicationPublicKey> keys = LookupManager.getInstance().getLatestKeys(disabledApplication);
             ApplicationPublicKey key = keys.get(ApplicationPublicKey.PURPOSE_SIGNING).getRawRecord().getAsProxy(ApplicationPublicKey.class);
             key.setVerified(false);
             key.save();

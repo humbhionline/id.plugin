@@ -5,8 +5,6 @@ import com.venky.core.collections.SequenceSet;
 import com.venky.core.date.DateUtils;
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.Database;
-import com.venky.swf.db.model.application.Application;
-import com.venky.swf.db.model.application.ApplicationPublicKey;
 import com.venky.swf.db.model.application.api.EndPoint;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.plugins.collab.db.model.config.City;
@@ -22,7 +20,9 @@ import com.venky.swf.sql.Select;
 import in.succinct.beckn.Location;
 import in.succinct.beckn.Subscriber;
 import in.succinct.beckn.Subscribers;
+import in.succinct.id.core.db.model.onboarding.company.Application;
 import in.succinct.id.core.db.model.onboarding.company.Company;
+import in.succinct.id.db.model.onboarding.company.ApplicationPublicKey;
 import org.apache.lucene.search.Query;
 
 import java.sql.Timestamp;
@@ -294,7 +294,7 @@ public class LookupManager {
     }
     public Map<String,ApplicationPublicKey> getLatestKeys(Application application){
         List<ApplicationPublicKey> keys = application.getApplicationPublicKeys().stream().
-                filter(applicationPublicKey -> applicationPublicKey.isVerified() && !applicationPublicKey.isExpired()).collect(Collectors.toList());
+                filter(applicationPublicKey -> applicationPublicKey.isVerified() && !applicationPublicKey.isExpired()).map(k->k.getRawRecord().getAsProxy(ApplicationPublicKey.class)).collect(Collectors.toList());
         return getLatestKeys(application, keys);
     }
     public Map<String,ApplicationPublicKey> getLatestKeys(Application application, List<ApplicationPublicKey> keys){

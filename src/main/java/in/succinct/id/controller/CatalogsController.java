@@ -9,8 +9,6 @@ import com.venky.swf.controller.VirtualModelController;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
-import com.venky.swf.db.model.application.Application;
-import com.venky.swf.db.model.application.ApplicationPublicKey;
 import com.venky.swf.db.model.application.ApplicationUtil;
 import com.venky.swf.db.model.io.xls.JsonAttributeSetter;
 import com.venky.swf.exceptions.AccessDeniedException;
@@ -43,8 +41,10 @@ import in.succinct.beckn.Request;
 import in.succinct.beckn.Scalar;
 import in.succinct.beckn.Subscriber;
 import in.succinct.beckn.Subscribers;
+import in.succinct.id.core.db.model.onboarding.company.Application;
 import in.succinct.id.core.db.model.onboarding.company.Company;
 import in.succinct.id.db.model.Catalog;
+import in.succinct.id.db.model.onboarding.company.ApplicationPublicKey;
 import in.succinct.id.util.KeyFormatFixer;
 import in.succinct.id.util.LookupManager;
 import in.succinct.onet.core.adaptor.NetworkAdaptor;
@@ -223,8 +223,8 @@ public class CatalogsController extends VirtualModelController<Catalog> {
                     }
                 }); //We need to send to only one bg, It will be propagated internally.
 
-                Application self = ApplicationUtil.find(Config.instance().getHostName());
-                Map<String,ApplicationPublicKey> latestKeys = LookupManager.getInstance().getLatestKeys(self);
+                Application self = ApplicationUtil.find(Config.instance().getHostName()).getRawRecord().getAsProxy(Application.class);
+                Map<String, ApplicationPublicKey> latestKeys = LookupManager.getInstance().getLatestKeys(self.getRawRecord().getAsProxy(in.succinct.id.core.db.model.onboarding.company.Application.class));
 
 
 
