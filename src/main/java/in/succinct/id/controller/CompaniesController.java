@@ -6,7 +6,6 @@ import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.db.model.application.ApplicationUtil;
 import com.venky.swf.path.Path;
-
 import com.venky.swf.plugins.collab.db.model.participants.admin.Facility;
 import com.venky.swf.routing.Config;
 import com.venky.swf.views.BytesView;
@@ -27,7 +26,6 @@ import in.succinct.id.core.db.model.onboarding.company.Application;
 import in.succinct.id.core.db.model.onboarding.company.Company;
 import in.succinct.id.core.db.model.user.User;
 import in.succinct.id.db.model.onboarding.company.ApplicationPublicKey;
-import in.succinct.id.extensions.BecknOnePrivateKeyFinder;
 import in.succinct.id.util.LookupManager;
 import org.jetbrains.annotations.NotNull;
 import org.json.simple.JSONObject;

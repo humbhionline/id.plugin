@@ -45,7 +45,6 @@ import in.succinct.id.core.db.model.onboarding.company.Application;
 import in.succinct.id.core.db.model.onboarding.company.Company;
 import in.succinct.id.db.model.Catalog;
 import in.succinct.id.db.model.onboarding.company.ApplicationPublicKey;
-import in.succinct.id.util.KeyFormatFixer;
 import in.succinct.id.util.LookupManager;
 import in.succinct.onet.core.adaptor.NetworkAdaptor;
 import in.succinct.onet.core.adaptor.NetworkAdaptorFactory;
@@ -216,12 +215,7 @@ public class CatalogsController extends VirtualModelController<Catalog> {
                 Subscribers gateways = LookupManager.getInstance().lookup(new Subscriber() {{
                     setSubscriberId(networkAdaptor.getSearchProviderId());
                     setType(Subscriber.SUBSCRIBER_TYPE_BG);
-                }}, new KeyFormatFixer() {
-                    @Override
-                    public void fix(Subscriber subscriber) {
-                        // do nothing.;;
-                    }
-                }); //We need to send to only one bg, It will be propagated internally.
+                }}, null); //We need to send to only one bg, It will be propagated internally.
 
                 Application self = ApplicationUtil.find(Config.instance().getHostName()).getRawRecord().getAsProxy(Application.class);
                 Map<String, ApplicationPublicKey> latestKeys = LookupManager.getInstance().getLatestKeys(self.getRawRecord().getAsProxy(in.succinct.id.core.db.model.onboarding.company.Application.class));
@@ -289,7 +283,7 @@ public class CatalogsController extends VirtualModelController<Catalog> {
 
     public void importSheet(Sheet sheet, final JSONObject root){
 
-        Map<String, JsonAttributeSetter> setterMap = new Cache<String, JsonAttributeSetter>(0,0){
+        Map<String, JsonAttributeSetter> setterMap = new Cache<>(0,0){
             @Override
             protected JsonAttributeSetter getValue(String s) {
                 JsonAttributeSetter attributeSetter = new JsonAttributeSetter(s);
