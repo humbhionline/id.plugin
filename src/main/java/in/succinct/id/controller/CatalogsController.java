@@ -180,8 +180,7 @@ public class CatalogsController extends VirtualModelController<Catalog> {
                 for (Item item : provider.getItems()) {
                     item.setLocationIds(locationIds);
                 }
-                Fulfillment fulfillment  = provider.getFulfillments().get("HOME-DELIVERY");
-                if (fulfillment != null){
+                for (Fulfillment fulfillment : provider.getFulfillments()){
                     if (fulfillment.getContact() == null){
                         fulfillment.setContact(new Contact());
                     }
@@ -190,23 +189,25 @@ public class CatalogsController extends VirtualModelController<Catalog> {
                     fulfillment.setProviderId(provider.getId());
                     fulfillment.setProviderName(provider.getDescriptor().getName());
                     fulfillment.setTracking(false);
-                    fulfillment.setStart(new FulfillmentStop(){{
-                        setLocation(provider.getLocations().get(0));
-                        Object maxDistance = fulfillment.getTag("APPLICABILITY","MAX_DISTANCE");
-                        if (maxDistance != null){
-                            getLocation().setCircle(new Circle());
-                            getLocation().getCircle().setGps(getLocation().getGps());
-                            getLocation().getCircle().setRadius(new Scalar(){{
-                                setValue(Database.getJdbcTypeHelper("").getTypeRef(double.class).getTypeConverter().valueOf(maxDistance));
-                                setUnit("Km");
-                            }});
-                        }
+                    if (ObjectUtil.equals(fulfillment.getType(),"HOME-DELIVERY")) {
+                        fulfillment.setStart(new FulfillmentStop() {{
+                            setLocation(provider.getLocations().get(0));
+                            Object maxDistance = fulfillment.getTag("APPLICABILITY", "MAX_DISTANCE");
+                            if (maxDistance != null) {
+                                getLocation().setCircle(new Circle());
+                                getLocation().getCircle().setGps(getLocation().getGps());
+                                getLocation().getCircle().setRadius(new Scalar() {{
+                                    setValue(Database.getJdbcTypeHelper("").getTypeRef(double.class).getTypeConverter().valueOf(maxDistance));
+                                    setUnit("Km");
+                                }});
+                            }
 
-                        setContact(fulfillment.getContact());
-                        setPerson(new Person(){{
-                            setName(user.getLongName());
+                            setContact(fulfillment.getContact());
+                            setPerson(new Person() {{
+                                setName(user.getLongName());
+                            }});
                         }});
-                    }});
+                    }
                 }
 
                 Request request = prepareCatalogSyncRequest(providers, subscriber,networkAdaptor);
