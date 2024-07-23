@@ -185,8 +185,8 @@ public class CatalogsController extends VirtualModelController<Catalog> {
                     if (fulfillment.getContact() == null){
                         fulfillment.setContact(new Contact());
                     }
-                    fulfillment.getContact().setEmail(user.getEmail());
-                    fulfillment.getContact().setPhone(user.getPhoneNumber());
+                    fulfillment.getContact().setEmail(facility.getEmail());
+                    fulfillment.getContact().setPhone(facility.getPhoneNumber());
                     fulfillment.setProviderId(provider.getId());
                     fulfillment.setProviderName(provider.getDescriptor().getName());
                     fulfillment.setTracking(false);
