@@ -1,5 +1,6 @@
 package in.succinct.id.controller;
 
+import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.controller.annotations.SingleRecordAction;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
@@ -27,6 +28,8 @@ import in.succinct.id.core.db.model.onboarding.company.Company;
 import in.succinct.id.core.db.model.user.User;
 import in.succinct.id.db.model.onboarding.company.ApplicationPublicKey;
 import in.succinct.id.util.LookupManager;
+import in.succinct.json.JSONAwareWrapper.JSONAwareWrapperCreator;
+import in.succinct.onet.core.adaptor.NetworkAdaptorFactory;
 import org.jetbrains.annotations.NotNull;
 import org.json.simple.JSONObject;
 
@@ -41,11 +44,24 @@ public class CompaniesController extends in.succinct.id.core.controller.Companie
         super(path);
     }
 
+    private void loadSubscribers(Subscribers allSubscribers , String subscriberId){
+        Subscribers subscribers = LookupManager.getInstance().lookup(new Subscriber(){{
+            setSubscriberId(subscriberId);
+        }},null);
+        for (Subscriber subscriber : subscribers){
+            allSubscribers.add(subscriber);
+        }
+    }
 
+    private transient final JSONAwareWrapperCreator creator = NetworkAdaptorFactory.getInstance().getAdaptor(Config.instance().getProperty("in.succinct.onet.name","beckn_open")).getObjectCreator(null);
+    JSONAwareWrapperCreator getObjectCreator(){
+        return creator;
+    }
     @SingleRecordAction( icon = "fas fa-certificate")
+    @RequireLogin(value = false)
     public View generate_beckn_json(long id){
-        User user = getSessionUser();
         Company company = Database.getTable(Company.class).get(id);
+        User user = company.getCreatorUser().getRawRecord().getAsProxy(User.class);
 
         List<Facility> facilities =  company.getFacilities();
         Facility bankingFacility = facilities.size() ==1 ? facilities.get(0) : facilities.stream().filter(f->
@@ -55,19 +71,15 @@ public class CompaniesController extends in.succinct.id.core.controller.Companie
 
         List<Application> applications = company.getApplications().stream().map(a->a.getRawRecord().getAsProxy(Application.class)).collect(Collectors.toList());
 
-        Subscribers allSubscribers = new Subscribers();
+        Subscribers allSubscribers =  new Subscribers();
         for (Application application : applications){
-            Subscribers subscribers = LookupManager.getInstance().lookup(new Subscriber(){{
-                setSubscriberId(application.getAppId());
-            }}, null);
-
-            for (Subscriber subscriber : subscribers){
-                allSubscribers.add(subscriber);
-            }
+            loadSubscribers(allSubscribers,application.getAppId());
         }
+        loadSubscribers(allSubscribers,company.getSubscriberId());
+
         Organization organization = getOrganization(company, bankingFacility, user);
 
-        Payment payment = new Payment();
+        Payment payment = getObjectCreator().create(Payment.class);
         payment.setCollectedBy(CollectedBy.BPP);
         payment.setParams(new Params(){{
             setBankAccountName(company.getName());
@@ -77,29 +89,32 @@ public class CompaniesController extends in.succinct.id.core.controller.Companie
         }});
         //Prepare beckn.json
         BecknDescriptorContent beckn = new BecknDescriptorContent();
-        beckn.setOrganization(organization);
         beckn.setSubscribers(allSubscribers);
+        beckn.setOrganization(organization);
         beckn.setPayment(payment);
-
-
-        BecknDescriptor descriptor = new BecknDescriptor();
-        descriptor.setContent(Base64.getEncoder().encodeToString(beckn.toString().getBytes(StandardCharsets.UTF_8)));
 
         Application self = ApplicationUtil.find(Config.instance().getHostName()).getRawRecord().getAsProxy(Application.class);
         Map<String, ApplicationPublicKey>  map =LookupManager.getInstance().getLatestKeys(self);
         String keyId = map.get(ApplicationPublicKey.PURPOSE_SIGNING).getKeyId();
 
+        beckn.setRegistrarId(self.getAppId());
 
 
-        String signature = Request.generateSignature(descriptor.getContent(), CryptoKey.find(keyId,CryptoKey.PURPOSE_SIGNING).getPrivateKey());
-        descriptor.setSignature(signature);
+        BecknDescriptor descriptor = new BecknDescriptor();
+        descriptor.setContent(Base64.getEncoder().encodeToString(beckn.toString().getBytes(StandardCharsets.UTF_8)));
+
+        if (company.isKycComplete() && user.isKycComplete()) {
+            //Do not sign unless kyc is complete.
+            String signature = Request.generateSignature(descriptor.getContent(), CryptoKey.find(keyId, CryptoKey.PURPOSE_SIGNING).getPrivateKey());
+            descriptor.setSignature(signature);
+        }
 
         return new BytesView(getPath(),descriptor.toString().getBytes(StandardCharsets.UTF_8), MimeType.APPLICATION_JSON,"content-disposition", "attachment; filename=beckn.json" );
     }
 
     @NotNull
-    private static Organization getOrganization(Company company, Facility bankingFacility, User user) {
-        Organization organization = new Organization();
+    private Organization getOrganization(Company company, Facility bankingFacility, User user) {
+        Organization organization = getObjectCreator().create(Organization.class);
         organization.setIncomeTaxId(company.getTaxIdentificationNumber());
         organization.setDateOfIncorporation(company.getDateOfIncorporation());
         organization.setName(company.getName());
@@ -183,6 +198,13 @@ public class CompaniesController extends in.succinct.id.core.controller.Companie
         }
         public void setPayment(Payment payment){
             set("payment",payment);
+        }
+
+        public String getRegistrarId(){
+            return get("registrar_id");
+        }
+        public void setRegistrarId(String registrar_id){
+            set("registrar_id",registrar_id);
         }
     }
 }

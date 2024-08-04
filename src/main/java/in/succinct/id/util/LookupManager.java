@@ -23,6 +23,8 @@ import in.succinct.beckn.Subscribers;
 import in.succinct.id.core.db.model.onboarding.company.Application;
 import in.succinct.id.core.db.model.onboarding.company.Company;
 import in.succinct.id.db.model.onboarding.company.ApplicationPublicKey;
+import in.succinct.json.JSONAwareWrapper.JSONAwareWrapperCreator;
+import in.succinct.onet.core.adaptor.NetworkAdaptorFactory;
 import org.apache.lucene.search.Query;
 
 import java.sql.Timestamp;
@@ -142,7 +144,16 @@ public class LookupManager {
             subscribers.add(subscriber);
         }
 
-        return subscribers;
+
+        JSONAwareWrapperCreator creator = NetworkAdaptorFactory.getInstance().getAdaptor(Config.instance().getProperty("in.succinct.onet.name","beckn_open")).getObjectCreator(null);
+        Subscribers outList = creator.create(Subscribers.class);
+        for (Subscriber r : subscribers){
+            Subscriber out = creator.create(Subscriber.class);
+            out.update(r);
+            outList.add(out);
+        }
+
+        return outList;
     }
 
     /**
@@ -238,7 +249,7 @@ public class LookupManager {
             subscribers.add(new Subscriber(){{
                 setSubscriberId(company.getSubscriberId());
                 setStatus(Subscriber.SUBSCRIBER_STATUS_SUBSCRIBED);
-                setType(criteria.getType());
+                setType(SUBSCRIBER_TYPE_BPP);
 
                 setLocation(new Location(){{
                     if (cities.size() == 1) {
