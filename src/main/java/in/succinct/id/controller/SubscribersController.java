@@ -348,18 +348,14 @@ public class SubscribersController extends Controller {
         }
 
 
-        Subscribers subscribers = new Subscribers(payload);
-        for (Subscriber subscriber :subscribers) {
-            Application disabledApplication =  ApplicationUtil.find(subscriber.getSubscriberId(),Application.class);
-            if (disabledApplication == null){
-                continue;
-            }
+        Subscriber subscriber = new Subscriber(payload);
+        Application disabledApplication =  ApplicationUtil.find(subscriber.getSubscriberId(),Application.class);
+        if (disabledApplication != null){
             Map<String, ApplicationPublicKey> keys = LookupManager.getInstance().getLatestKeys(disabledApplication);
             ApplicationPublicKey key = keys.get(ApplicationPublicKey.PURPOSE_SIGNING).getRawRecord().getAsProxy(ApplicationPublicKey.class);
             key.setVerified(false);
             key.save();
-            // when App calls signed /subscribe again, it would get verified.
         }
-        return new BytesView(getPath(),subscribers.getInner().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+        return new BytesView(getPath(),subscriber.getInner().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
     }
 }
